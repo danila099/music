@@ -6,11 +6,16 @@ console.log('Upload.js загружен');
 let isUploading = false;
 let selectedFile = null;
 
+// Глобальные переменные для громкости
+let userTrackVolume = 1.0; // Громкость по умолчанию
+let isMuted = false; // Состояние мута
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализируем загрузку');
     initUploadForm();
     initDragAndDrop();
     initTrackLikes();
+    loadVolumeSettings();
 });
 
 function initUploadForm() {
@@ -267,10 +272,21 @@ function uploadFile() {
             if (progressText) progressText.textContent = 'Загрузка завершена!';
             showNotification('Файл успешно загружен!', 'success');
             
-            // Перезагружаем страницу через 2 секунды
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            // Получаем информацию о загруженном треке
+            const trackInfo = {
+                id: data.track_id || Date.now(),
+                title: title,
+                artist: artist,
+                filename: selectedFile.name,
+                upload_date: new Date().toLocaleDateString('ru-RU'),
+                duration: '0:00'
+            };
+            
+            // Добавляем трек в список
+            addTrackToList(trackInfo);
+            
+            // Сбрасываем форму
+            resetUploadForm();
         } else {
             showNotification(data.error || 'Ошибка при загрузке файла', 'error');
             resetUploadForm();
@@ -288,6 +304,103 @@ function uploadFile() {
     });
 }
 
+// Функция для добавления нового трека в список
+function addTrackToList(trackInfo) {
+    const userTracksList = document.querySelector('.user-tracks-list');
+    const emptyState = document.querySelector('.empty-state');
+    
+    // Убираем пустое состояние если оно есть
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    // Показываем список треков
+    if (userTracksList) {
+        userTracksList.style.display = 'block';
+    }
+    
+    // Создаем элемент трека
+    const trackElement = document.createElement('div');
+    trackElement.className = 'user-track-item';
+    trackElement.setAttribute('data-track-id', `user_${trackInfo.id}`);
+    trackElement.setAttribute('data-track-type', 'user');
+    
+    // Генерируем случайный цвет для обложки
+    const colors = ['ff6b6b', '4ecdc4', '45b7d1', '96ceb4', 'ffeaa7', 'dda0dd'];
+    let randomColor = colors[Math.floor(Math.random() * colors.length)];
+    if (!randomColor) randomColor = 'ff6b6b';
+    
+    trackElement.innerHTML = `
+        <div class="track-info">
+            <div class="track-cover">
+                <img src="https://via.placeholder.com/60x60/${randomColor}/ffffff?text=${trackInfo.title[0].toUpperCase()}" alt="Track">
+                <div class="track-overlay">
+                    <button class="play-track-btn" onclick="togglePlayPause('user_${trackInfo.id}')">
+                        <i class="fas fa-play"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="track-details">
+                <h4>${trackInfo.title}</h4>
+                <p>${trackInfo.artist}</p>
+                <div class="track-meta">
+                    <span class="upload-date">
+                        <i class="fas fa-calendar"></i> 
+                        ${trackInfo.upload_date}
+                    </span>
+                    <span class="file-size">
+                        <i class="fas fa-file-audio"></i> 
+                        ${trackInfo.filename}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="track-actions">
+            <div class="track-stats">
+                <span class="duration">${trackInfo.duration}</span>
+                <div class="like-count">
+                    <i class="fas fa-heart"></i>
+                    <span class="count">0</span>
+                </div>
+            </div>
+            <div class="track-controls">
+                <button class="play-btn" onclick="togglePlayPause('user_${trackInfo.id}')" data-track-id="user_${trackInfo.id}">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="like-btn" onclick="toggleLike('user_${trackInfo.id}')" data-track-id="user_${trackInfo.id}">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <button class="delete-btn" onclick="deleteTrack('user_${trackInfo.id}')" data-track-id="user_${trackInfo.id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="track-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <span class="progress-text">0%</span>
+            </div>
+        </div>
+    `;
+    
+    // Добавляем элемент в начало списка с анимацией
+    if (userTracksList) {
+        trackElement.style.opacity = '0';
+        trackElement.style.transform = 'translateY(-20px)';
+        userTracksList.insertBefore(trackElement, userTracksList.firstChild);
+        
+        // Анимация появления
+        setTimeout(() => {
+            trackElement.style.transition = 'all 0.3s ease';
+            trackElement.style.opacity = '1';
+            trackElement.style.transform = 'translateY(0)';
+        }, 10);
+    }
+    
+    // Обновляем счетчик треков
+    updateTrackCount();
+}
+
 function resetUploadForm() {
     console.log('Сброс формы загрузки');
     
@@ -302,7 +415,7 @@ function resetUploadForm() {
     
     if (uploadProgress) uploadProgress.style.display = 'none';
     if (uploadBtn) {
-        uploadBtn.disabled = false;
+        uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Загрузить трек';
     }
     
@@ -330,37 +443,174 @@ function playUserTrack(trackId) {
     // Извлекаем ID трека из строки "user_123"
     const actualTrackId = trackId.replace('user_', '');
     
-    // Создаем аудио элемент для воспроизведения
-    const audio = new Audio(`/play/user/${actualTrackId}`);
+    // Если уже играет этот трек, просто возобновляем
+    if (currentTrack && currentTrack.id === trackId && currentAudio) {
+        if (!isPlaying) {
+            currentAudio.play().catch(error => {
+                console.error('Ошибка возобновления:', error);
+                showNotification('Ошибка возобновления трека', 'error');
+            });
+            isPlaying = true;
+            updateTrackUI(trackId, true);
+            updatePlayer(trackId, 'user');
+        }
+        return;
+    }
+    
+    // Если играет другой трек, останавливаем его
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
+    
+    // Создаем новый аудио элемент
+    currentAudio = new Audio(`/play/user/${actualTrackId}`);
+    currentTrack = { id: trackId, type: 'user' };
+    isPlaying = true;
+    
+    // Применяем настройки громкости
+    applyVolumeSettings();
     
     // Загружаем сохраненный прогресс
     loadProgress(trackId, 'user');
     
     // Обработчики событий
-    audio.addEventListener('loadedmetadata', function() {
-        console.log('Трек загружен:', audio.duration);
+    currentAudio.addEventListener('loadedmetadata', function() {
+        console.log('Трек загружен:', currentAudio.duration);
     });
     
-    audio.addEventListener('timeupdate', function() {
+    currentAudio.addEventListener('timeupdate', function() {
         // Сохраняем прогресс каждые 5 секунд
-        if (Math.floor(audio.currentTime) % 5 === 0) {
-            saveProgress(trackId, 'user', audio.currentTime / audio.duration * 100);
+        if (Math.floor(currentAudio.currentTime) % 5 === 0) {
+            saveProgress(trackId, 'user', currentAudio.currentTime / currentAudio.duration * 100);
         }
+        
+        // Обновляем глобальный плеер
+        updateGlobalPlayer();
     });
     
-    audio.addEventListener('ended', function() {
+    currentAudio.addEventListener('ended', function() {
         saveProgress(trackId, 'user', 0); // Сбрасываем прогресс
+        isPlaying = false;
+        updateTrackUI(trackId, false);
+        updateGlobalPlayer();
+    });
+    
+    currentAudio.addEventListener('pause', function() {
+        isPlaying = false;
+        updateTrackUI(trackId, false);
+        updateGlobalPlayer();
+    });
+    
+    currentAudio.addEventListener('play', function() {
+        isPlaying = true;
+        updateTrackUI(trackId, true);
+        updateGlobalPlayer();
     });
     
     // Воспроизводим трек
-    audio.play().catch(error => {
+    currentAudio.play().catch(error => {
         console.error('Ошибка воспроизведения:', error);
         showNotification('Ошибка воспроизведения трека', 'error');
+        isPlaying = false;
+        updateTrackUI(trackId, false);
     });
     
-    // Обновляем плеер
+    // Обновляем UI
+    updateTrackUI(trackId, true);
     updatePlayer(trackId, 'user');
+    updateGlobalPlayer();
+    
+    // Настраиваем управление громкостью
+    setupVolumeControl();
 }
+
+// Функция для паузы трека
+function pauseUserTrack(trackId) {
+    console.log('Пауза трека:', trackId);
+    
+    if (currentAudio && currentTrack && currentTrack.id === trackId && isPlaying) {
+        currentAudio.pause();
+        isPlaying = false;
+        updateTrackUI(trackId, false);
+        updateGlobalPlayer();
+    }
+}
+
+// Функция для возобновления трека
+function resumeUserTrack(trackId) {
+    console.log('Возобновление трека:', trackId);
+    
+    if (currentAudio && currentTrack && currentTrack.id === trackId && !isPlaying) {
+        currentAudio.play().catch(error => {
+            console.error('Ошибка возобновления:', error);
+            showNotification('Ошибка возобновления трека', 'error');
+        });
+        isPlaying = true;
+        updateTrackUI(trackId, true);
+        updateGlobalPlayer();
+    }
+}
+
+// Функция для переключения воспроизведения/паузы
+function togglePlayPause(trackId) {
+    if (currentTrack && currentTrack.id === trackId) {
+        if (isPlaying) {
+            pauseUserTrack(trackId);
+        } else {
+            resumeUserTrack(trackId);
+        }
+    } else {
+        playUserTrack(trackId);
+    }
+}
+
+// Функция для обновления глобального плеера
+function updateGlobalPlayer() {
+    const globalPlayer = document.getElementById('global-player');
+    const playPauseBtn = document.querySelector('.play-pause-btn i');
+    
+    if (globalPlayer && currentTrack) {
+        globalPlayer.style.display = 'block';
+        
+        if (playPauseBtn) {
+            playPauseBtn.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
+        }
+        
+        // Обновляем время
+        if (currentAudio) {
+            const currentTimeEl = document.getElementById('current-time');
+            const totalTimeEl = document.getElementById('total-time');
+            const progressFill = document.getElementById('player-progress-fill');
+            
+            if (currentTimeEl) {
+                currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+            }
+            if (totalTimeEl) {
+                totalTimeEl.textContent = formatTime(currentAudio.duration);
+            }
+            if (progressFill) {
+                const progress = (currentAudio.currentTime / currentAudio.duration) * 100;
+                progressFill.style.width = `${progress}%`;
+            }
+        }
+    }
+}
+
+// Функция для форматирования времени
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Делаем функции глобальными
+window.playUserTrack = playUserTrack;
+window.pauseUserTrack = pauseUserTrack;
+window.resumeUserTrack = resumeUserTrack;
+window.togglePlayPause = togglePlayPause;
 
 function deleteTrack(trackId) {
     console.log('Удаление трека:', trackId);
@@ -368,8 +618,30 @@ function deleteTrack(trackId) {
     // Извлекаем ID трека из строки "user_123"
     const actualTrackId = trackId.replace('user_', '');
     
-    if (confirm('Вы уверены, что хотите удалить этот трек?')) {
-        // Здесь можно добавить API для удаления трека
+    // Проверяем, не играет ли этот трек
+    if (currentTrack && currentTrack.id === trackId) {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        currentTrack = null;
+        isPlaying = false;
+        
+        // Скрываем глобальный плеер
+        const globalPlayer = document.getElementById('global-player');
+        if (globalPlayer) {
+            globalPlayer.style.display = 'none';
+        }
+    }
+    
+    if (confirm('Вы уверены, что хотите удалить этот трек? Это действие нельзя отменить.')) {
+        // Показываем индикатор загрузки
+        const trackElement = document.querySelector(`[data-track-id="${trackId}"]`);
+        if (trackElement) {
+            trackElement.style.opacity = '0.5';
+            trackElement.style.pointerEvents = 'none';
+        }
+        
         fetch(`/api/delete_track/${actualTrackId}`, {
             method: 'DELETE'
         })
@@ -377,23 +649,78 @@ function deleteTrack(trackId) {
         .then(data => {
             if (data.success) {
                 showNotification('Трек успешно удален', 'success');
-                // Удаляем элемент из DOM
-                const trackElement = document.querySelector(`[data-track-id="${trackId}"]`);
+                
+                // Удаляем элемент из DOM с анимацией
                 if (trackElement) {
-                    trackElement.remove();
+                    trackElement.style.transition = 'all 0.3s ease';
+                    trackElement.style.transform = 'translateX(-100%)';
+                    trackElement.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        trackElement.remove();
+                        
+                        // Обновляем счетчик треков
+                        updateTrackCount();
+                        
+                        // Проверяем, есть ли еще треки
+                        const remainingTracks = document.querySelectorAll('.user-track-item');
+                        if (remainingTracks.length === 0) {
+                            showEmptyState();
+                        }
+                    }, 300);
                 }
-                // Перезагружаем страницу через 1 секунду
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
             } else {
                 showNotification(data.error || 'Ошибка при удалении трека', 'error');
+                
+                // Восстанавливаем элемент
+                if (trackElement) {
+                    trackElement.style.opacity = '1';
+                    trackElement.style.pointerEvents = 'auto';
+                }
             }
         })
         .catch(error => {
             console.error('Ошибка удаления трека:', error);
             showNotification('Ошибка при удалении трека', 'error');
+            
+            // Восстанавливаем элемент
+            if (trackElement) {
+                trackElement.style.opacity = '1';
+                trackElement.style.pointerEvents = 'auto';
+            }
         });
+    }
+}
+
+// Функция для обновления счетчика треков
+function updateTrackCount() {
+    const trackCountElement = document.querySelector('.track-count');
+    const tracks = document.querySelectorAll('.user-track-item');
+    
+    if (trackCountElement) {
+        const count = tracks.length;
+        trackCountElement.textContent = `${count} ${count === 1 ? 'трек' : count < 5 ? 'трека' : 'треков'}`;
+    }
+}
+
+// Функция для показа пустого состояния
+function showEmptyState() {
+    const userTracksSection = document.querySelector('.user-tracks-section');
+    if (userTracksSection) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+        emptyState.innerHTML = `
+            <i class="fas fa-music"></i>
+            <h3>У вас пока нет загруженных треков</h3>
+            <p>Загрузите свой первый трек выше</p>
+        `;
+        
+        const tracksList = userTracksSection.querySelector('.user-tracks-list');
+        if (tracksList) {
+            tracksList.style.display = 'none';
+        }
+        
+        userTracksSection.appendChild(emptyState);
     }
 }
 
@@ -577,6 +904,131 @@ function updateTrackProgress(trackId, progress) {
         
         if (progressText) {
             progressText.textContent = Math.round(progress) + '%';
+        }
+    }
+}
+
+function updateTrackUI(trackId, isPlaying) {
+    const trackElement = document.querySelector(`[data-track-id="${trackId}"]`);
+    if (trackElement) {
+        // Обновляем кнопку воспроизведения в overlay
+        const overlayBtn = trackElement.querySelector('.track-overlay .play-track-btn');
+        if (overlayBtn) {
+            overlayBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        }
+        
+        // Обновляем кнопку воспроизведения в controls
+        const controlBtn = trackElement.querySelector('.track-controls .play-btn');
+        if (controlBtn) {
+            controlBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        }
+        
+        // Добавляем/убираем класс playing для визуального эффекта
+        if (isPlaying) {
+            trackElement.classList.add('playing');
+        } else {
+            trackElement.classList.remove('playing');
+        }
+    }
+}
+
+// Функция для настройки управления громкостью
+function setupVolumeControl() {
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeIcon = document.getElementById('volume-icon');
+    
+    if (volumeSlider && currentAudio) {
+        // Устанавливаем начальное значение
+        volumeSlider.value = userTrackVolume * 100;
+        
+        // Обработчик изменения громкости
+        volumeSlider.addEventListener('input', function() {
+            const volume = this.value / 100;
+            setVolume(volume);
+        });
+        
+        // Обработчик клика по иконке громкости
+        if (volumeIcon) {
+            volumeIcon.addEventListener('click', function() {
+                toggleMute();
+            });
+        }
+    }
+}
+
+// Функция для установки громкости
+function setVolume(volume) {
+    if (currentAudio) {
+        userTrackVolume = volume;
+        currentAudio.volume = isMuted ? 0 : volume;
+        
+        // Обновляем иконку громкости
+        updateVolumeIcon(volume);
+        
+        // Сохраняем настройки в localStorage
+        localStorage.setItem('userTrackVolume', volume);
+        localStorage.setItem('userTrackMuted', isMuted);
+    }
+}
+
+// Функция для переключения мута
+function toggleMute() {
+    isMuted = !isMuted;
+    
+    if (currentAudio) {
+        currentAudio.volume = isMuted ? 0 : userTrackVolume;
+        
+        // Обновляем иконку
+        updateVolumeIcon(isMuted ? 0 : userTrackVolume);
+        
+        // Обновляем слайдер
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.value = isMuted ? 0 : userTrackVolume * 100;
+        }
+        
+        // Сохраняем настройки
+        localStorage.setItem('userTrackMuted', isMuted);
+    }
+}
+
+// Функция для обновления иконки громкости
+function updateVolumeIcon(volume) {
+    const volumeIcon = document.getElementById('volume-icon');
+    if (volumeIcon) {
+        if (volume === 0 || isMuted) {
+            volumeIcon.className = 'fas fa-volume-mute';
+        } else if (volume < 0.5) {
+            volumeIcon.className = 'fas fa-volume-down';
+        } else {
+            volumeIcon.className = 'fas fa-volume-up';
+        }
+    }
+}
+
+// Функция для загрузки сохраненных настроек громкости
+function loadVolumeSettings() {
+    const savedVolume = localStorage.getItem('userTrackVolume');
+    const savedMuted = localStorage.getItem('userTrackMuted');
+    
+    if (savedVolume !== null) {
+        userTrackVolume = parseFloat(savedVolume);
+    }
+    
+    if (savedMuted !== null) {
+        isMuted = savedMuted === 'true';
+    }
+}
+
+// Функция для применения настроек громкости к текущему аудио
+function applyVolumeSettings() {
+    if (currentAudio) {
+        currentAudio.volume = isMuted ? 0 : userTrackVolume;
+        updateVolumeIcon(isMuted ? 0 : userTrackVolume);
+        
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.value = isMuted ? 0 : userTrackVolume * 100;
         }
     }
 } 

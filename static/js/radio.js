@@ -1,18 +1,18 @@
 // JavaScript для страницы радио
 
-let currentAudio = null;
-let currentStation = null;
-let isMuted = false;
-let savedVolume = 0.5;
+let radioAudio = null;
+let radioStation = null;
+let radioIsMuted = false;
+let radioSavedVolume = 0.5;
 
 // Глобальная функция для доступа с других страниц
 window.playRadio = function(stationId, stationName, streamUrl) {
-    console.log('Воспроизведение радио:', stationName);
+    console.log('Воспроизведение радио:', stationName, 'URL:', streamUrl);
     
     // Останавливаем предыдущее воспроизведение
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
+    if (radioAudio) {
+        radioAudio.pause();
+        radioAudio = null;
     }
     
     try {
@@ -21,35 +21,44 @@ window.playRadio = function(stationId, stationName, streamUrl) {
             showRadioStatus('Подключение к радиостанции...');
         }
         
-        // Создаем новый аудио элемент с реальным потоком
-        currentAudio = new Audio(streamUrl);
-        currentStation = {
+        // Проверяем, является ли это SomaFM станцией
+        const isSomaFM = streamUrl.includes('somafm.com');
+        
+        // Создаем новый аудио элемент
+        radioAudio = new Audio();
+        radioStation = {
             id: stationId,
             name: stationName,
             url: streamUrl
         };
         
         // Настраиваем аудио
-        currentAudio.volume = isMuted ? 0 : savedVolume;
-        currentAudio.loop = false;
-        currentAudio.preload = 'auto';
+        radioAudio.volume = radioIsMuted ? 0 : radioSavedVolume;
+        radioAudio.loop = false;
+        radioAudio.preload = 'auto';
+        
+        // Добавляем специальные заголовки для SomaFM
+        if (isSomaFM) {
+            // SomaFM требует специальные заголовки
+            radioAudio.crossOrigin = 'anonymous';
+        }
         
         // Обработчики событий
-        currentAudio.addEventListener('loadstart', function() {
+        radioAudio.addEventListener('loadstart', function() {
             console.log('Загрузка радиостанции...');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Загрузка радиостанции...');
             }
         });
         
-        currentAudio.addEventListener('canplay', function() {
+        radioAudio.addEventListener('canplay', function() {
             console.log('Радио готово к воспроизведению');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Радио готово');
             }
         });
         
-        currentAudio.addEventListener('playing', function() {
+        radioAudio.addEventListener('playing', function() {
             console.log('Радио играет');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Радио играет');
@@ -60,15 +69,17 @@ window.playRadio = function(stationId, stationName, streamUrl) {
             updatePlayerWithRadio(stationName);
         });
         
-        currentAudio.addEventListener('waiting', function() {
+        radioAudio.addEventListener('waiting', function() {
             console.log('Радио буферизуется...');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Буферизация...');
             }
         });
         
-        currentAudio.addEventListener('error', function(e) {
+        radioAudio.addEventListener('error', function(e) {
             console.error('Ошибка воспроизведения радио:', e);
+            console.error('Код ошибки:', radioAudio.error ? radioAudio.error.code : 'неизвестно');
+            
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Ошибка воспроизведения');
             }
@@ -77,25 +88,42 @@ window.playRadio = function(stationId, stationName, streamUrl) {
             createDemoAudio(stationName);
         });
         
-        currentAudio.addEventListener('ended', function() {
+        radioAudio.addEventListener('ended', function() {
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Радио остановлено');
             }
         });
         
-        currentAudio.addEventListener('stalled', function() {
+        radioAudio.addEventListener('stalled', function() {
             console.log('Радио приостановлено');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Соединение прервано');
             }
         });
         
+        // Устанавливаем источник и начинаем воспроизведение
+        radioAudio.src = streamUrl;
+        
+        // Добавляем таймаут для проверки подключения
+        const connectionTimeout = setTimeout(() => {
+            if (radioAudio && radioAudio.readyState === 0) {
+                console.log('Таймаут подключения к радиостанции');
+                showNotification('Не удалось подключиться к радиостанции. Включаем демо-режим.', 'warning');
+                createDemoAudio(stationName);
+            }
+        }, 10000); // 10 секунд
+        
+        radioAudio.addEventListener('canplay', function() {
+            clearTimeout(connectionTimeout);
+        });
+        
         // Начинаем воспроизведение
-        currentAudio.play().then(() => {
+        radioAudio.play().then(() => {
             console.log('Радио запущено:', stationName);
             showNotification(`Сейчас играет: ${stationName}`, 'success');
         }).catch(error => {
             console.error('Ошибка запуска радио:', error);
+            clearTimeout(connectionTimeout);
             
             // Пробуем создать демо-звук
             createDemoAudio(stationName);
@@ -112,13 +140,14 @@ window.playRadio = function(stationId, stationName, streamUrl) {
 document.addEventListener('DOMContentLoaded', function() {
     initRadioControls();
     initVolumeSlider();
+    loadRadioStations();
 });
 
 function initRadioControls() {
     // Инициализация элементов управления
     const volumeSlider = document.getElementById('volumeSlider');
     if (volumeSlider) {
-        volumeSlider.value = savedVolume * 100;
+        volumeSlider.value = radioSavedVolume * 100;
     }
 }
 
@@ -138,13 +167,13 @@ function playRadio(stationId, stationName, streamUrl) {
 }
 
 function stopRadio() {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
+    if (radioAudio) {
+        radioAudio.pause();
+        radioAudio = null;
     }
     
     // Останавливаем демо-звук если он играет
-    if (currentStation && currentStation.id === 'demo') {
+    if (radioStation && radioStation.id === 'demo') {
         // Останавливаем Web Audio API если он активен
         if (window.demoAudioContext) {
             try {
@@ -156,7 +185,7 @@ function stopRadio() {
         }
     }
     
-    currentStation = null;
+    radioStation = null;
     
     // Скрываем секцию "Сейчас играет"
     const nowPlayingSection = document.getElementById('nowPlayingSection');
@@ -168,25 +197,25 @@ function stopRadio() {
 }
 
 function toggleMute() {
-    if (!currentAudio) return;
+    if (!radioAudio) return;
     
     const volumeIcon = document.getElementById('volumeIcon');
     const volumeSlider = document.getElementById('volumeSlider');
     
-    if (isMuted) {
+    if (radioIsMuted) {
         // Включаем звук
-        currentAudio.volume = savedVolume;
-        isMuted = false;
+        radioAudio.volume = radioSavedVolume;
+        radioIsMuted = false;
         volumeIcon.className = 'fas fa-volume-up';
         if (volumeSlider) {
-            volumeSlider.value = savedVolume * 100;
+            volumeSlider.value = radioSavedVolume * 100;
         }
         showNotification('Звук включен', 'info');
     } else {
         // Выключаем звук
-        savedVolume = currentAudio.volume;
-        currentAudio.volume = 0;
-        isMuted = true;
+        radioSavedVolume = radioAudio.volume;
+        radioAudio.volume = 0;
+        radioIsMuted = true;
         volumeIcon.className = 'fas fa-volume-mute';
         if (volumeSlider) {
             volumeSlider.value = 0;
@@ -196,11 +225,11 @@ function toggleMute() {
 }
 
 function setVolume(volume) {
-    if (!currentAudio) return;
+    if (!radioAudio) return;
     
-    savedVolume = volume;
-    if (!isMuted) {
-        currentAudio.volume = volume;
+    radioSavedVolume = volume;
+    if (!radioIsMuted) {
+        radioAudio.volume = volume;
     }
     
     // Обновляем иконку громкости
@@ -340,8 +369,8 @@ function showNotification(message, type = 'info') {
 }
 
 // Добавляем CSS анимации
-const style = document.createElement('style');
-style.textContent = `
+const radioStyle = document.createElement('style');
+radioStyle.textContent = `
     @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
@@ -402,20 +431,20 @@ style.textContent = `
         border: none;
     }
 `;
-document.head.appendChild(style);
+document.head.appendChild(radioStyle);
 
 // Обработчик закрытия страницы
 window.addEventListener('beforeunload', function() {
-    if (currentAudio) {
-        currentAudio.pause();
+    if (radioAudio) {
+        radioAudio.pause();
     }
 });
 
 // Обработчик потери фокуса (пауза при переключении вкладок)
 document.addEventListener('visibilitychange', function() {
-    if (document.hidden && currentAudio) {
+    if (document.hidden && radioAudio) {
         // Можно добавить автоматическую паузу при переключении вкладок
-        // currentAudio.pause();
+        // radioAudio.pause();
     }
 });
 
@@ -428,24 +457,48 @@ function createDemoAudio(stationName) {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         window.demoAudioContext = audioContext; // Сохраняем для возможности остановки
         
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        // Создаем несколько осцилляторов для более богатого звука
+        const oscillators = [];
+        const frequencies = [220, 330, 440, 550]; // Аккорд
+        const gains = [0.05, 0.03, 0.04, 0.02]; // Разная громкость
         
-        // Настраиваем осциллятор
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // Ля первой октавы
+        for (let i = 0; i < frequencies.length; i++) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // Настраиваем осциллятор
+            oscillator.type = i % 2 === 0 ? 'sine' : 'triangle';
+            oscillator.frequency.setValueAtTime(frequencies[i], audioContext.currentTime);
+            
+            // Настраиваем громкость с затуханием
+            gainNode.gain.setValueAtTime(gains[i], audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+            
+            // Подключаем узлы
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillators.push({ oscillator, gainNode });
+        }
         
-        // Настраиваем громкость
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        // Запускаем все осцилляторы
+        oscillators.forEach(({ oscillator }) => {
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 2);
+        });
         
-        // Подключаем узлы
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        // Создаем повторяющийся паттерн
+        const repeatPattern = () => {
+            if (window.demoAudioContext && window.demoAudioContext.state === 'running') {
+                setTimeout(() => {
+                    if (window.demoAudioContext && window.demoAudioContext.state === 'running') {
+                        createDemoAudio(stationName);
+                    }
+                }, 2000);
+            }
+        };
         
-        // Запускаем осциллятор
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.5);
+        repeatPattern();
         
         // Обновляем статус
         if (typeof showRadioStatus === 'function') {
@@ -455,8 +508,8 @@ function createDemoAudio(stationName) {
         showNotification(`Демо-режим: ${stationName} (внешний поток недоступен)`, 'info');
         
         // Очищаем текущий аудио
-        currentAudio = null;
-        currentStation = {
+        radioAudio = null;
+        radioStation = {
             id: 'demo',
             name: stationName,
             url: 'demo'
@@ -477,7 +530,93 @@ function createDemoAudio(stationName) {
         }
         
         // Очищаем текущий аудио
-        currentAudio = null;
-        currentStation = null;
+        radioAudio = null;
+        radioStation = null;
     }
+}
+
+// Экспорт функций в глобальную область видимости
+window.playRadio = window.playRadio;
+window.stopRadio = stopRadio;
+window.toggleMute = toggleMute;
+window.setVolume = setVolume;
+window.filterByGenre = filterByGenre;
+window.showRadioStatus = showRadioStatus;
+window.showNotification = showNotification;
+window.updateNowPlaying = updateNowPlaying;
+window.updatePlayerWithRadio = updatePlayerWithRadio;
+window.loadRadioStations = loadRadioStations;
+window.displayRadioStations = displayRadioStations;
+window.refreshRadioStations = refreshRadioStations;
+
+// Функция для загрузки радиостанций
+function loadRadioStations() {
+    fetch('/api/radio_stations')
+        .then(response => response.json())
+        .then(stations => {
+            displayRadioStations(stations);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки радиостанций:', error);
+            showNotification('Ошибка загрузки радиостанций', 'error');
+        });
+}
+
+// Функция для отображения радиостанций
+function displayRadioStations(stations) {
+    const radioGrid = document.getElementById('radioGrid');
+    if (!radioGrid) return;
+    
+    radioGrid.innerHTML = '';
+    
+    stations.forEach(station => {
+        const stationCard = document.createElement('div');
+        stationCard.className = `radio-card ${station.available ? 'available' : 'unavailable'}`;
+        stationCard.setAttribute('data-station-id', station.id);
+        
+        const statusIcon = station.available ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        const statusClass = station.available ? 'status-available' : 'status-unavailable';
+        
+        stationCard.innerHTML = `
+            <div class="radio-cover">
+                <img src="${station.image}" alt="${station.name}">
+                <div class="radio-overlay">
+                    <button class="play-radio-btn ${station.available ? '' : 'disabled'}" 
+                            onclick="playRadio('${station.id}', '${station.name}', '${station.stream_url}')"
+                            ${station.available ? '' : 'disabled'}>
+                        <i class="fas fa-play"></i>
+                    </button>
+                </div>
+                <div class="radio-status-indicator ${statusClass}">
+                    <i class="fas ${statusIcon}"></i>
+                </div>
+            </div>
+            <div class="radio-info">
+                <h3>${station.name}</h3>
+                <p class="radio-genre">${station.genre}</p>
+                <p class="radio-description">${station.description}</p>
+                <p class="radio-status">${station.available ? 'Доступно' : 'Недоступно'}</p>
+            </div>
+        `;
+        
+        radioGrid.appendChild(stationCard);
+    });
+}
+
+// Функция для обновления радиостанций
+function refreshRadioStations() {
+    const refreshBtn = document.querySelector('.refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обновление...';
+        refreshBtn.disabled = true;
+    }
+    
+    loadRadioStations();
+    
+    setTimeout(() => {
+        if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить';
+            refreshBtn.disabled = false;
+        }
+    }, 3000);
 } 
