@@ -10,30 +10,39 @@
 </head>
 <body>
     <!-- Мобильное меню -->
-    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+    <div class="mobile-menu-toggle">
         <i class="fas fa-bars"></i>
-    </button>
-    
-    <div class="mobile-overlay" id="mobileOverlay"></div>
-
-    <!-- Боковая панель -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h2><i class="fas fa-music"></i> Музыка</h2>
-        </div>
-        <nav class="sidebar-nav">
-            <ul>
-                <li><a href="/" class="active"><i class="fas fa-home"></i> Главная</a></li>
-                <li><a href="/search"><i class="fas fa-search"></i> Поиск</a></li>
-                <li><a href="#"><i class="fas fa-heart"></i> Любимые</a></li>
-                <li><a href="#"><i class="fas fa-list"></i> Плейлисты</a></li>
-                <li><a href="#"><i class="fas fa-microphone"></i> Исполнители</a></li>
-                <li><a href="/radio"><i class="fas fa-radio"></i> Радио</a></li>
-                <li><a href="/upload"><i class="fas fa-upload"></i> Загрузка</a></li>
-                <li><a href="/history"><i class="fas fa-history"></i> История</a></li>
+    </div>
+    <div class="mobile-overlay">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-music"></i> Музыка</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('index') }}" class="active"><i class="fas fa-home"></i> Главная</a></li>
+                <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
+                <li><a href="{{ url_for('radio') }}"><i class="fas fa-radio"></i> Радио</a></li>
+                <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
+                <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
+                <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a></li>
             </ul>
         </nav>
     </div>
+
+    <!-- Боковая панель -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-music"></i> Музыка</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="{{ url_for('index') }}" class="active"><i class="fas fa-home"></i> Главная</a></li>
+            <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
+            <li><a href="{{ url_for('radio') }}"><i class="fas fa-radio"></i> Радио</a></li>
+            <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
+            <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
+            <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a></li>
+        </ul>
+    </nav>
 
     <!-- Основной контент -->
     <div class="main-content">
@@ -46,7 +55,36 @@
                 </form>
             </div>
             <div class="user-menu">
-                <button class="user-btn"><i class="fas fa-user"></i></button>
+                {% if user %}
+                <div class="user-info">
+                    <span class="username">{{ user.username }}</span>
+                    <div class="user-dropdown">
+                        <button class="user-btn">
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar }}" alt="{{ user.username }}" class="user-avatar">
+                            {% else %}
+                            <i class="fas fa-user"></i>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a>
+                            <a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a>
+                            <a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="auth-btn login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                    <a href="{{ url_for('register') }}" class="auth-btn register-btn">
+                        <i class="fas fa-user-plus"></i> Регистрация
+                    </a>
+                </div>
+                {% endif %}
                 <button class="settings-btn"><i class="fas fa-cog"></i></button>
             </div>
         </header>
@@ -61,17 +99,17 @@
 
             <!-- Быстрые действия -->
             <div class="quick-actions">
-                <div class="action-card" onclick="window.location.href='/upload'">
+                <div class="action-card" onclick="window.location.href='{{ url_for('upload') }}'">
                     <i class="fas fa-upload"></i>
                     <h3>Загрузить музыку</h3>
                     <p>Добавьте свои треки</p>
                 </div>
-                <div class="action-card" onclick="window.location.href='/radio'">
+                <div class="action-card" onclick="window.location.href='{{ url_for('radio') }}'">
                     <i class="fas fa-radio"></i>
                     <h3>Слушать радио</h3>
                     <p>Онлайн радиостанции</p>
                 </div>
-                <div class="action-card" onclick="window.location.href='#'">
+                <div class="action-card" onclick="window.location.href='{{ url_for('history') }}'">
                     <i class="fas fa-heart"></i>
                     <h3>Любимые треки</h3>
                     <p>Ваша коллекция</p>
@@ -92,7 +130,7 @@
                             <div class="track-cover">
                                 <img src="https://via.placeholder.com/50x50/{{ ['ff6b6b', '4ecdc4', '45b7d1', '96ceb4', 'ffeaa7', 'dda0dd']|random }}/ffffff?text={{ track.title[0]|upper }}" alt="Track">
                                 <div class="track-overlay">
-                                    <button class="play-track-btn" onclick="playUserTrack('user_{{ track.id }}')">
+                                    <button class="play-track-btn" onclick="togglePlayPause('user_{{ track.id }}')">
                                         <i class="fas fa-play"></i>
                                     </button>
                                 </div>
@@ -112,7 +150,7 @@
                             <button class="play-btn" onclick="togglePlayPause('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
                                 <i class="fas fa-play"></i>
                             </button>
-                            <button class="like-btn" onclick="toggleLike('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
+                            <button class="like-btn" onclick="toggleLike('user_{{ track.id }}', 'user')" data-track-id="user_{{ track.id }}">
                                 <i class="fas fa-heart"></i>
                             </button>
                             <button class="delete-btn" onclick="deleteTrack('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
@@ -156,7 +194,9 @@
                         <div class="playlist-cover">
                             <img src="{{ playlist.cover }}" alt="{{ playlist.name }}">
                             <div class="playlist-overlay">
-                                <button class="play-btn"><i class="fas fa-play"></i></button>
+                                <button class="play-btn" onclick="event.stopPropagation(); playFirstTrackFromPlaylist('{{ playlist.id }}')">
+                                    <i class="fas fa-play"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="playlist-info">
@@ -200,7 +240,9 @@
                         <div class="radio-preview-cover">
                             <img src="{{ station.image }}" alt="{{ station.name }}">
                             <div class="radio-preview-overlay">
-                                <button class="play-radio-btn"><i class="fas fa-play"></i></button>
+                                <button class="play-radio-btn" onclick="event.stopPropagation(); playRadio('{{ station.id }}', '{{ station.name }}', '{{ station.stream_url }}')">
+                                    <i class="fas fa-play"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="radio-preview-info">
@@ -249,36 +291,6 @@
         </div>
     </div>
 
-    <!-- Плеер -->
-    <div class="player">
-        <div class="player-track-info">
-            <img src="https://via.placeholder.com/60x60/ff6b6b/ffffff?text=К" alt="Now Playing">
-            <div>
-                <h4>Кукушка</h4>
-                <p>Кино</p>
-            </div>
-        </div>
-        <div class="player-controls">
-            <button class="control-btn"><i class="fas fa-step-backward"></i></button>
-            <button class="play-pause-btn"><i class="fas fa-play"></i></button>
-            <button class="control-btn"><i class="fas fa-step-forward"></i></button>
-        </div>
-        <div class="player-progress">
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
-            </div>
-            <div class="time-info">
-                <span class="current-time">1:23</span>
-                <span class="total-time">4:32</span>
-            </div>
-        </div>
-        <div class="player-options">
-            <button class="control-btn"><i class="fas fa-volume-up"></i></button>
-            <button class="control-btn"><i class="fas fa-random"></i></button>
-            <button class="control-btn"><i class="fas fa-redo"></i></button>
-        </div>
-    </div>
-
     <!-- Глобальный плеер -->
     <div id="global-player" class="global-player" style="display: none;">
         <div class="player-content">
@@ -292,7 +304,7 @@
                 </div>
             </div>
             <div class="player-controls">
-                <button class="control-btn" onclick="stopUserTrack(currentTrack?.id)" title="Остановить">
+                <button class="control-btn" onclick="stopAllAudio()" title="Остановить">
                     <i class="fas fa-stop"></i>
                 </button>
                 <button class="control-btn play-pause-btn" onclick="togglePlayPause(currentTrack?.id)" title="Пауза/Воспроизведение">
@@ -315,19 +327,22 @@
                 </div>
             </div>
             <div class="volume-control">
-                <i class="fas fa-volume-up"></i>
+                <i class="fas fa-volume-up" id="volume-icon" onclick="toggleMute()" title="Мутировать/Включить звук"></i>
                 <input type="range" id="volume-slider" min="0" max="100" value="100" class="volume-slider">
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/playlist.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/radio.js') }}"></script>
     <script>
         // Мобильное меню
         document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const sidebar = document.getElementById('sidebar');
-            const mobileOverlay = document.getElementById('mobileOverlay');
+            const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mobileOverlay = document.querySelector('.mobile-overlay');
             
             function toggleMobileMenu() {
                 sidebar.classList.toggle('open');
@@ -361,6 +376,22 @@
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     closeMobileMenu();
+                }
+            });
+
+            // Инициализация лайков для пользовательских треков
+            document.querySelectorAll('.user-track-item').forEach(trackItem => {
+                const trackId = trackItem.dataset.trackId;
+                const trackType = trackItem.dataset.trackType;
+                
+                // Проверяем статус лайка
+                if (window.checkTrackLike) {
+                    window.checkTrackLike(trackId, trackType);
+                }
+                
+                // Загружаем прогресс воспроизведения
+                if (window.loadTrackProgress) {
+                    window.loadTrackProgress(trackId, trackType);
                 }
             });
         });

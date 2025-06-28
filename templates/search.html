@@ -1,1 +1,259 @@
- 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск - Музыка</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Мобильное меню -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-music"></i> Музыка</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                <li><a href="/search" class="active"><i class="fas fa-search"></i> Поиск</a></li>
+                <li><a href="#"><i class="fas fa-heart"></i> Любимые</a></li>
+                <li><a href="#"><i class="fas fa-list"></i> Плейлисты</a></li>
+                <li><a href="#"><i class="fas fa-microphone"></i> Исполнители</a></li>
+                <li><a href="/radio"><i class="fas fa-radio"></i> Радио</a></li>
+                <li><a href="/upload"><i class="fas fa-upload"></i> Загрузка</a></li>
+                <li><a href="/history"><i class="fas fa-history"></i> История</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="main-content">
+        <!-- Верхняя панель -->
+        <header class="top-bar">
+            <div class="search-container">
+                <form action="/search" method="GET" class="search-form">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="q" placeholder="Поиск музыки, исполнителей, альбомов..." class="search-input">
+                </form>
+            </div>
+            <div class="user-menu">
+                {% if user %}
+                <div class="user-info">
+                    <span class="username">{{ user.username }}</span>
+                    <div class="user-dropdown">
+                        <button class="user-btn">
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar }}" alt="{{ user.username }}" class="user-avatar">
+                            {% else %}
+                            <i class="fas fa-user"></i>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a>
+                            <a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a>
+                            <a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="auth-btn login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                    <a href="{{ url_for('register') }}" class="auth-btn register-btn">
+                        <i class="fas fa-user-plus"></i> Регистрация
+                    </a>
+                </div>
+                {% endif %}
+                <button class="settings-btn"><i class="fas fa-cog"></i></button>
+            </div>
+        </header>
+
+        <!-- Контент -->
+        <div class="content">
+            <!-- Заголовок -->
+            <div class="welcome-section">
+                <h1><i class="fas fa-search"></i> Поиск музыки</h1>
+                <p>Найдите любимые треки и исполнителей</p>
+            </div>
+
+            <!-- Простой поиск -->
+            <div class="simple-search-container">
+                <div class="search-options">
+                    <a href="/search_advanced" class="advanced-search-link">
+                        <i class="fas fa-sliders-h"></i>
+                        Расширенный поиск
+                    </a>
+                </div>
+
+                <!-- Быстрые поиски -->
+                <div class="quick-searches">
+                    <h3>Популярные запросы</h3>
+                    <div class="quick-search-tags">
+                        <span class="quick-search-tag" onclick="searchFor('рок')">Рок</span>
+                        <span class="quick-search-tag" onclick="searchFor('поп')">Поп</span>
+                        <span class="quick-search-tag" onclick="searchFor('джаз')">Джаз</span>
+                        <span class="quick-search-tag" onclick="searchFor('классика')">Классика</span>
+                        <span class="quick-search-tag" onclick="searchFor('электроника')">Электроника</span>
+                        <span class="quick-search-tag" onclick="searchFor('металл')">Металл</span>
+                        <span class="quick-search-tag" onclick="searchFor('фолк')">Фолк</span>
+                        <span class="quick-search-tag" onclick="searchFor('блюз')">Блюз</span>
+                    </div>
+                </div>
+
+                <!-- Результаты поиска -->
+                {% if results %}
+                <div class="search-results">
+                    <div class="results-header">
+                        <h2>Результаты поиска для "{{ query }}"</h2>
+                        <span class="results-count">{{ results|length }} результатов</span>
+                    </div>
+                    
+                    <div class="results-grid">
+                        {% for result in results %}
+                        <div class="result-item">
+                            <div class="result-cover">
+                                <img src="https://via.placeholder.com/120x120/{{ ['ff6b6b', '4ecdc4', '45b7d1', '96ceb4', 'ffeaa7', 'dda0dd']|random }}/ffffff?text={{ result.song.title[0]|upper }}" alt="{{ result.song.title }}">
+                                <div class="result-overlay">
+                                    <button class="play-result-btn" onclick="playTrack('{{ result.song.id }}', '{{ result.type }}')">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="result-info">
+                                <div class="result-title">{{ result.song.title }}</div>
+                                <div class="result-subtitle">{{ result.song.artist }}</div>
+                                <div class="result-meta">
+                                    <span class="result-type">{{ result.type|title }}</span>
+                                    {% if result.playlist %}
+                                    <span class="result-source">из {{ result.playlist.name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% elif query %}
+                <div class="search-results">
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>Ничего не найдено</h3>
+                        <p>Попробуйте изменить поисковый запрос</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Глобальный плеер -->
+    <div id="global-player" class="global-player" style="display: none;">
+        <div class="player-content">
+            <div class="track-info">
+                <div class="track-artwork">
+                    <i class="fas fa-music"></i>
+                </div>
+                <div class="track-details">
+                    <div class="track-title" id="player-track-title">Название трека</div>
+                    <div class="track-artist" id="player-track-artist">Исполнитель</div>
+                </div>
+            </div>
+            <div class="player-controls">
+                <button class="control-btn" onclick="stopUserTrack(currentTrack?.id)" title="Остановить">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button class="control-btn play-pause-btn" onclick="togglePlayPause(currentTrack?.id)" title="Пауза/Воспроизведение">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn" onclick="skipBackward()" title="Назад 10 сек">
+                    <i class="fas fa-backward"></i>
+                </button>
+                <button class="control-btn" onclick="skipForward()" title="Вперед 10 сек">
+                    <i class="fas fa-forward"></i>
+                </button>
+            </div>
+            <div class="player-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="player-progress-fill"></div>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+            <div class="volume-control">
+                <i class="fas fa-volume-up" id="volume-icon" onclick="toggleMute()" title="Мутировать/Включить звук"></i>
+                <input type="range" id="volume-slider" min="0" max="100" value="100" class="volume-slider">
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // Функция для быстрого поиска
+        function searchFor(query) {
+            window.location.href = '/search?q=' + encodeURIComponent(query);
+        }
+
+        // Функция для воспроизведения трека
+        function playTrack(trackId, trackType) {
+            // Здесь будет логика воспроизведения
+            console.log('Воспроизведение трека:', trackId, trackType);
+        }
+
+        // Мобильное меню
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            function toggleMobileMenu() {
+                sidebar.classList.toggle('open');
+                mobileOverlay.classList.toggle('active');
+                
+                // Меняем иконку
+                const icon = mobileMenuToggle.querySelector('i');
+                if (sidebar.classList.contains('open')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            }
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('open');
+                mobileOverlay.classList.remove('active');
+                const icon = mobileMenuToggle.querySelector('i');
+                icon.className = 'fas fa-bars';
+            }
+            
+            mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            mobileOverlay.addEventListener('click', closeMobileMenu);
+            
+            // Закрываем меню при клике на ссылку
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', closeMobileMenu);
+            });
+            
+            // Закрываем меню при изменении размера экрана
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

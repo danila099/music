@@ -29,13 +29,12 @@
         </div>
         <nav class="sidebar-nav">
             <ul>
-                <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
-                <li><a href="#"><i class="fas fa-search"></i> Поиск</a></li>
-                <li><a href="#"><i class="fas fa-heart"></i> Любимые</a></li>
-                <li><a href="#"><i class="fas fa-list"></i> Плейлисты</a></li>
-                <li><a href="#"><i class="fas fa-microphone"></i> Исполнители</a></li>
-                <li><a href="/radio" class="active"><i class="fas fa-radio"></i> Радио</a></li>
-                <li><a href="/upload"><i class="fas fa-upload"></i> Загрузка</a></li>
+                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Главная</a></li>
+                <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
+                <li><a href="{{ url_for('radio') }}" class="active"><i class="fas fa-radio"></i> Радио</a></li>
+                <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
+                <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
+                <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a></li>
             </ul>
         </nav>
     </div>
@@ -51,7 +50,36 @@
                 </form>
             </div>
             <div class="user-menu">
-                <button class="user-btn"><i class="fas fa-user"></i></button>
+                {% if user %}
+                <div class="user-info">
+                    <span class="username">{{ user.username }}</span>
+                    <div class="user-dropdown">
+                        <button class="user-btn">
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar }}" alt="{{ user.username }}" class="user-avatar">
+                            {% else %}
+                            <i class="fas fa-user"></i>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Профиль</a>
+                            <a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a>
+                            <a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="auth-btn login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                    <a href="{{ url_for('register') }}" class="auth-btn register-btn">
+                        <i class="fas fa-user-plus"></i> Регистрация
+                    </a>
+                </div>
+                {% endif %}
                 <button class="settings-btn"><i class="fas fa-cog"></i></button>
             </div>
         </header>
@@ -68,26 +96,13 @@
             <div class="radio-section">
                 <div class="section-header">
                     <h2>Популярные радиостанции</h2>
+                    <button class="refresh-btn" onclick="refreshRadioStations()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
                 </div>
                 
-                <div class="radio-grid">
-                    {% for station in radio_stations %}
-                    <div class="radio-card" data-station-id="{{ station.id }}">
-                        <div class="radio-cover">
-                            <img src="{{ station.image }}" alt="{{ station.name }}">
-                            <div class="radio-overlay">
-                                <button class="play-radio-btn" onclick="playRadio('{{ station.id }}', '{{ station.name }}', '{{ station.stream_url }}')">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="radio-info">
-                            <h3>{{ station.name }}</h3>
-                            <p class="radio-genre">{{ station.genre }}</p>
-                            <p class="radio-description">{{ station.description }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
+                <div class="radio-grid" id="radioGrid">
+                    <!-- Радиостанции будут загружены через JavaScript -->
                 </div>
             </div>
 
@@ -159,33 +174,45 @@
         </div>
     </div>
 
-    <!-- Плеер -->
-    <div class="player">
-        <div class="player-track-info">
-            <img src="https://via.placeholder.com/60x60/ff6b6b/ffffff?text=К" alt="Now Playing">
-            <div>
-                <h4>Кукушка</h4>
-                <p>Кино</p>
+    <!-- Глобальный плеер -->
+    <div id="global-player" class="global-player" style="display: none;">
+        <div class="player-content">
+            <div class="track-info">
+                <div class="track-artwork">
+                    <i class="fas fa-music"></i>
+                </div>
+                <div class="track-details">
+                    <div class="track-title" id="player-track-title">Название трека</div>
+                    <div class="track-artist" id="player-track-artist">Исполнитель</div>
+                </div>
             </div>
-        </div>
-        <div class="player-controls">
-            <button class="control-btn"><i class="fas fa-step-backward"></i></button>
-            <button class="play-pause-btn"><i class="fas fa-play"></i></button>
-            <button class="control-btn"><i class="fas fa-step-forward"></i></button>
-        </div>
-        <div class="player-progress">
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
+            <div class="player-controls">
+                <button class="control-btn" onclick="stopUserTrack(currentTrack?.id)" title="Остановить">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button class="control-btn play-pause-btn" onclick="togglePlayPause(currentTrack?.id)" title="Пауза/Воспроизведение">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn" onclick="skipBackward()" title="Назад 10 сек">
+                    <i class="fas fa-backward"></i>
+                </button>
+                <button class="control-btn" onclick="skipForward()" title="Вперед 10 сек">
+                    <i class="fas fa-forward"></i>
+                </button>
             </div>
-            <div class="time-info">
-                <span class="current-time">1:23</span>
-                <span class="total-time">4:32</span>
+            <div class="player-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="player-progress-fill"></div>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
             </div>
-        </div>
-        <div class="player-options">
-            <button class="control-btn"><i class="fas fa-volume-up"></i></button>
-            <button class="control-btn"><i class="fas fa-random"></i></button>
-            <button class="control-btn"><i class="fas fa-redo"></i></button>
+            <div class="volume-control">
+                <i class="fas fa-volume-up" id="volume-icon" onclick="toggleMute()" title="Мутировать/Включить звук"></i>
+                <input type="range" id="volume-slider" min="0" max="100" value="100" class="volume-slider">
+            </div>
         </div>
     </div>
 
