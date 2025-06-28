@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Музыка - Главная</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Мобильное меню -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-music"></i> Музыка</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/" class="active"><i class="fas fa-home"></i> Главная</a></li>
+                <li><a href="/search"><i class="fas fa-search"></i> Поиск</a></li>
+                <li><a href="#"><i class="fas fa-heart"></i> Любимые</a></li>
+                <li><a href="#"><i class="fas fa-list"></i> Плейлисты</a></li>
+                <li><a href="#"><i class="fas fa-microphone"></i> Исполнители</a></li>
+                <li><a href="/radio"><i class="fas fa-radio"></i> Радио</a></li>
+                <li><a href="/upload"><i class="fas fa-upload"></i> Загрузка</a></li>
+                <li><a href="/history"><i class="fas fa-history"></i> История</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="main-content">
+        <!-- Верхняя панель -->
+        <header class="top-bar">
+            <div class="search-container">
+                <form action="/search" method="GET" class="search-form">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="q" placeholder="Поиск музыки, исполнителей, альбомов..." class="search-input">
+                </form>
+            </div>
+            <div class="user-menu">
+                <button class="user-btn"><i class="fas fa-user"></i></button>
+                <button class="settings-btn"><i class="fas fa-cog"></i></button>
+            </div>
+        </header>
+
+        <!-- Контент -->
+        <div class="content">
+            <!-- Приветствие -->
+            <div class="welcome-section">
+                <h1>Добро пожаловать в мир музыки</h1>
+                <p>Откройте для себя новые треки и исполнителей</p>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="quick-actions">
+                <div class="action-card" onclick="window.location.href='/upload'">
+                    <i class="fas fa-upload"></i>
+                    <h3>Загрузить музыку</h3>
+                    <p>Добавьте свои треки</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='/radio'">
+                    <i class="fas fa-radio"></i>
+                    <h3>Слушать радио</h3>
+                    <p>Онлайн радиостанции</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='#'">
+                    <i class="fas fa-heart"></i>
+                    <h3>Любимые треки</h3>
+                    <p>Ваша коллекция</p>
+                </div>
+            </div>
+
+            <!-- Пользовательские треки -->
+            {% if user_tracks %}
+            <section class="section">
+                <div class="section-header">
+                    <h2>Мои треки</h2>
+                    <a href="/upload" class="see-all">Управление</a>
+                </div>
+                <div class="user-tracks-preview">
+                    {% for track in user_tracks[:6] %}
+                    <div class="track-item user-track-item" data-track-id="user_{{ track.id }}" data-track-type="user">
+                        <div class="track-info">
+                            <div class="track-cover">
+                                <img src="https://via.placeholder.com/50x50/{{ ['ff6b6b', '4ecdc4', '45b7d1', '96ceb4', 'ffeaa7', 'dda0dd']|random }}/ffffff?text={{ track.title[0]|upper }}" alt="Track">
+                                <div class="track-overlay">
+                                    <button class="play-track-btn" onclick="playUserTrack('user_{{ track.id }}')">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="track-details">
+                                <h4>{{ track.title }}</h4>
+                                <p>{{ track.artist }}</p>
+                                <span class="track-meta">
+                                    <i class="fas fa-clock"></i> {{ track.duration or '0:00' }}
+                                    {% if track.upload_date %}
+                                    <i class="fas fa-calendar"></i> {{ track.upload_date }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="track-controls">
+                            <button class="play-btn" onclick="togglePlayPause('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="like-btn" onclick="toggleLike('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <button class="delete-btn" onclick="deleteTrack('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if user_tracks|length > 6 %}
+                <div class="section-footer">
+                    <a href="/upload" class="see-all-btn">Показать все {{ user_tracks|length }} треков</a>
+                </div>
+                {% endif %}
+            </section>
+            {% else %}
+            <section class="section">
+                <div class="section-header">
+                    <h2>Мои треки</h2>
+                </div>
+                <div class="empty-state">
+                    <i class="fas fa-music"></i>
+                    <h3>У вас пока нет загруженных треков</h3>
+                    <p>Загрузите свой первый трек и начните слушать любимую музыку</p>
+                    <a href="/upload" class="upload-btn">
+                        <i class="fas fa-upload"></i> Загрузить музыку
+                    </a>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Рекомендуемые плейлисты -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Рекомендуемые плейлисты</h2>
+                    <a href="#" class="see-all">Смотреть все</a>
+                </div>
+                <div class="playlists-grid">
+                    {% for playlist in playlists %}
+                    <div class="playlist-card" onclick="window.location.href='/playlist/{{ playlist.id }}'">
+                        <div class="playlist-cover">
+                            <img src="{{ playlist.cover }}" alt="{{ playlist.name }}">
+                            <div class="playlist-overlay">
+                                <button class="play-btn"><i class="fas fa-play"></i></button>
+                            </div>
+                        </div>
+                        <div class="playlist-info">
+                            <h3>{{ playlist.name }}</h3>
+                            <p>{{ playlist.songs|length }} треков</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Популярные исполнители -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Популярные исполнители</h2>
+                    <a href="#" class="see-all">Смотреть всех</a>
+                </div>
+                <div class="artists-grid">
+                    {% for artist in artists %}
+                    <div class="artist-card" onclick="window.location.href='/artist/{{ artist.id }}'">
+                        <div class="artist-image">
+                            <img src="{{ artist.image }}" alt="{{ artist.name }}">
+                        </div>
+                        <div class="artist-info">
+                            <h3>{{ artist.name }}</h3>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Радиостанции -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Популярное радио</h2>
+                    <a href="/radio" class="see-all">Все радиостанции</a>
+                </div>
+                <div class="radio-preview-grid">
+                    {% for station in radio_stations[:4] %}
+                    <div class="radio-preview-card" onclick="playRadio('{{ station.id }}', '{{ station.name }}', '{{ station.stream_url }}')">
+                        <div class="radio-preview-cover">
+                            <img src="{{ station.image }}" alt="{{ station.name }}">
+                            <div class="radio-preview-overlay">
+                                <button class="play-radio-btn"><i class="fas fa-play"></i></button>
+                            </div>
+                        </div>
+                        <div class="radio-preview-info">
+                            <h3>{{ station.name }}</h3>
+                            <p>{{ station.genre }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Недавно прослушанное -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Недавно прослушанное</h2>
+                </div>
+                <div class="recent-tracks">
+                    <div class="track-item">
+                        <div class="track-info">
+                            <img src="https://via.placeholder.com/50x50/ff6b6b/ffffff?text=К" alt="Track">
+                            <div>
+                                <h4>Кукушка</h4>
+                                <p>Кино</p>
+                            </div>
+                        </div>
+                        <div class="track-actions">
+                            <span class="duration">4:32</span>
+                            <button class="play-track-btn"><i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                    <div class="track-item">
+                        <div class="track-info">
+                            <img src="https://via.placeholder.com/50x50/4ecdc4/ffffff?text=В" alt="Track">
+                            <div>
+                                <h4>Выхода нет</h4>
+                                <p>Сплин</p>
+                            </div>
+                        </div>
+                        <div class="track-actions">
+                            <span class="duration">3:45</span>
+                            <button class="play-track-btn"><i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Плеер -->
+    <div class="player">
+        <div class="player-track-info">
+            <img src="https://via.placeholder.com/60x60/ff6b6b/ffffff?text=К" alt="Now Playing">
+            <div>
+                <h4>Кукушка</h4>
+                <p>Кино</p>
+            </div>
+        </div>
+        <div class="player-controls">
+            <button class="control-btn"><i class="fas fa-step-backward"></i></button>
+            <button class="play-pause-btn"><i class="fas fa-play"></i></button>
+            <button class="control-btn"><i class="fas fa-step-forward"></i></button>
+        </div>
+        <div class="player-progress">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="time-info">
+                <span class="current-time">1:23</span>
+                <span class="total-time">4:32</span>
+            </div>
+        </div>
+        <div class="player-options">
+            <button class="control-btn"><i class="fas fa-volume-up"></i></button>
+            <button class="control-btn"><i class="fas fa-random"></i></button>
+            <button class="control-btn"><i class="fas fa-redo"></i></button>
+        </div>
+    </div>
+
+    <!-- Глобальный плеер -->
+    <div id="global-player" class="global-player" style="display: none;">
+        <div class="player-content">
+            <div class="track-info">
+                <div class="track-artwork">
+                    <i class="fas fa-music"></i>
+                </div>
+                <div class="track-details">
+                    <div class="track-title" id="player-track-title">Название трека</div>
+                    <div class="track-artist" id="player-track-artist">Исполнитель</div>
+                </div>
+            </div>
+            <div class="player-controls">
+                <button class="control-btn" onclick="stopUserTrack(currentTrack?.id)" title="Остановить">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button class="control-btn play-pause-btn" onclick="togglePlayPause(currentTrack?.id)" title="Пауза/Воспроизведение">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn" onclick="skipBackward()" title="Назад 10 сек">
+                    <i class="fas fa-backward"></i>
+                </button>
+                <button class="control-btn" onclick="skipForward()" title="Вперед 10 сек">
+                    <i class="fas fa-forward"></i>
+                </button>
+            </div>
+            <div class="player-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="player-progress-fill"></div>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+            <div class="volume-control">
+                <i class="fas fa-volume-up"></i>
+                <input type="range" id="volume-slider" min="0" max="100" value="100" class="volume-slider">
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // Мобильное меню
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            function toggleMobileMenu() {
+                sidebar.classList.toggle('open');
+                mobileOverlay.classList.toggle('active');
+                
+                // Меняем иконку
+                const icon = mobileMenuToggle.querySelector('i');
+                if (sidebar.classList.contains('open')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            }
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('open');
+                mobileOverlay.classList.remove('active');
+                const icon = mobileMenuToggle.querySelector('i');
+                icon.className = 'fas fa-bars';
+            }
+            
+            mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            mobileOverlay.addEventListener('click', closeMobileMenu);
+            
+            // Закрываем меню при клике на ссылку
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.addEventListener('click', closeMobileMenu);
+            });
+            
+            // Закрываем меню при изменении размера экрана
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

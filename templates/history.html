@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История прослушивания - Музыка</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-music"></i>
+                <span>Музыка</span>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </a>
+                <a href="/upload" class="nav-link">
+                    <i class="fas fa-upload"></i>
+                    <span>Загрузить</span>
+                </a>
+                <a href="/radio" class="nav-link">
+                    <i class="fas fa-radio"></i>
+                    <span>Радио</span>
+                </a>
+                <a href="/history" class="nav-link active">
+                    <i class="fas fa-history"></i>
+                    <span>История</span>
+                </a>
+                <a href="/search" class="nav-link">
+                    <i class="fas fa-search"></i>
+                    <span>Поиск</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1><i class="fas fa-history"></i> История прослушивания</h1>
+                <p>Ваши недавно прослушанные треки</p>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="sort-filter">Сортировка:</label>
+                    <select id="sort-filter" class="filter-select">
+                        <option value="recent">Недавние</option>
+                        <option value="popular">Популярные</option>
+                        <option value="duration">По длительности</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="period-filter">Период:</label>
+                    <select id="period-filter" class="filter-select">
+                        <option value="all">Все время</option>
+                        <option value="today">Сегодня</option>
+                        <option value="week">Неделя</option>
+                        <option value="month">Месяц</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- История прослушивания -->
+            <div class="history-container">
+                <div id="history-list" class="history-list">
+                    <!-- История будет загружена через JavaScript -->
+                </div>
+                
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка истории...</p>
+                </div>
+                
+                <div id="empty-history" class="empty-state" style="display: none;">
+                    <i class="fas fa-history"></i>
+                    <h3>История пуста</h3>
+                    <p>Начните слушать музыку, чтобы увидеть историю прослушивания</p>
+                    <a href="/" class="btn btn-primary">Найти музыку</a>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-section">
+                <h2><i class="fas fa-chart-bar"></i> Ваша статистика</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-plays">0</h3>
+                            <p>Всего прослушиваний</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-time">0 мин</h3>
+                            <p>Общее время</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-likes">0</h3>
+                            <p>Любимых треков</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="unique-tracks">0</h3>
+                            <p>Уникальных треков</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Плеер -->
+        <div class="player" id="player">
+            <div class="player-content">
+                <div class="track-info">
+                    <img id="player-cover" src="https://via.placeholder.com/60x60/333/fff?text=♪" alt="Обложка">
+                    <div class="track-details">
+                        <h4 id="player-title">Выберите трек</h4>
+                        <p id="player-artist">-</p>
+                    </div>
+                </div>
+                <div class="player-controls">
+                    <button id="prev-btn" class="control-btn">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button id="play-btn" class="control-btn play-btn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button id="next-btn" class="control-btn">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
+                <div class="player-progress">
+                    <span id="current-time">0:00</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                        <input type="range" id="progress-slider" class="progress-slider" min="0" max="100" value="0">
+                    </div>
+                    <span id="total-time-display">0:00</span>
+                </div>
+                <div class="player-volume">
+                    <i class="fas fa-volume-up"></i>
+                    <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+</body>
+</html> 

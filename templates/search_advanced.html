@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расширенный поиск - Музыка</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-music"></i>
+                <span>Музыка</span>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </a>
+                <a href="/upload" class="nav-link">
+                    <i class="fas fa-upload"></i>
+                    <span>Загрузить</span>
+                </a>
+                <a href="/radio" class="nav-link">
+                    <i class="fas fa-radio"></i>
+                    <span>Радио</span>
+                </a>
+                <a href="/history" class="nav-link">
+                    <i class="fas fa-history"></i>
+                    <span>История</span>
+                </a>
+                <a href="/search" class="nav-link active">
+                    <i class="fas fa-search"></i>
+                    <span>Поиск</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1><i class="fas fa-search"></i> Расширенный поиск</h1>
+                <p>Найдите музыку по различным критериям</p>
+            </div>
+
+            <!-- Поисковая форма -->
+            <div class="search-form-container">
+                <div class="search-input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Введите название трека, исполнителя или плейлиста..." class="search-input">
+                    <button id="search-btn" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
+                <!-- Фильтры -->
+                <div class="search-filters">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="type-filter">Тип:</label>
+                            <select id="type-filter" class="filter-select">
+                                <option value="all">Все</option>
+                                <option value="tracks">Треки</option>
+                                <option value="artists">Исполнители</option>
+                                <option value="playlists">Плейлисты</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="sort-filter">Сортировка:</label>
+                            <select id="sort-filter" class="filter-select">
+                                <option value="relevance">По релевантности</option>
+                                <option value="popularity">По популярности</option>
+                                <option value="date">По дате</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="genre-filter">Жанр:</label>
+                            <select id="genre-filter" class="filter-select">
+                                <option value="all">Все жанры</option>
+                                <option value="rock">Рок</option>
+                                <option value="pop">Поп</option>
+                                <option value="electronic">Электроника</option>
+                                <option value="jazz">Джаз</option>
+                                <option value="classical">Классика</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Результаты поиска -->
+            <div class="search-results">
+                <div id="results-container" class="results-container">
+                    <!-- Результаты будут загружены через JavaScript -->
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Поиск...</p>
+                </div>
+                
+                <div id="no-results" class="empty-state" style="display: none;">
+                    <i class="fas fa-search"></i>
+                    <h3>Ничего не найдено</h3>
+                    <p>Попробуйте изменить поисковый запрос или фильтры</p>
+                </div>
+                
+                <div id="search-prompt" class="search-prompt">
+                    <i class="fas fa-search"></i>
+                    <h3>Начните поиск</h3>
+                    <p>Введите запрос выше, чтобы найти музыку</p>
+                </div>
+            </div>
+
+            <!-- Статистика поиска -->
+            <div id="search-stats" class="search-stats" style="display: none;">
+                <div class="stats-info">
+                    <span id="results-count">0 результатов</span>
+                    <span id="search-time">за 0.0 сек</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Плеер -->
+        <div class="player" id="player">
+            <div class="player-content">
+                <div class="track-info">
+                    <img id="player-cover" src="https://via.placeholder.com/60x60/333/fff?text=♪" alt="Обложка">
+                    <div class="track-details">
+                        <h4 id="player-title">Выберите трек</h4>
+                        <p id="player-artist">-</p>
+                    </div>
+                </div>
+                <div class="player-controls">
+                    <button id="prev-btn" class="control-btn">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button id="play-btn" class="control-btn play-btn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button id="next-btn" class="control-btn">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
+                <div class="player-progress">
+                    <span id="current-time">0:00</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                        <input type="range" id="progress-slider" class="progress-slider" min="0" max="100" value="0">
+                    </div>
+                    <span id="total-time-display">0:00</span>
+                </div>
+                <div class="player-volume">
+                    <i class="fas fa-volume-up"></i>
+                    <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+</body>
+</html> 

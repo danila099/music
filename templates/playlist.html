@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ playlist.name }} - Музыка</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Боковая панель -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-music"></i> Музыка</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                <li><a href="#"><i class="fas fa-search"></i> Поиск</a></li>
+                <li><a href="#"><i class="fas fa-heart"></i> Любимые</a></li>
+                <li><a href="#" class="active"><i class="fas fa-list"></i> Плейлисты</a></li>
+                <li><a href="#"><i class="fas fa-microphone"></i> Исполнители</a></li>
+                <li><a href="#"><i class="fas fa-radio"></i> Радио</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="main-content">
+        <!-- Верхняя панель -->
+        <header class="top-bar">
+            <div class="search-container">
+                <form action="/search" method="GET" class="search-form">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="q" placeholder="Поиск музыки, исполнителей, альбомов..." class="search-input">
+                </form>
+            </div>
+            <div class="user-menu">
+                <button class="user-btn"><i class="fas fa-user"></i></button>
+                <button class="settings-btn"><i class="fas fa-cog"></i></button>
+            </div>
+        </header>
+
+        <!-- Контент плейлиста -->
+        <div class="content">
+            <!-- Заголовок плейлиста -->
+            <div class="playlist-header">
+                <div class="playlist-cover-large">
+                    <img src="{{ playlist.cover }}" alt="{{ playlist.name }}">
+                    <div class="playlist-overlay-large">
+                        <button class="play-btn-large"><i class="fas fa-play"></i></button>
+                    </div>
+                </div>
+                <div class="playlist-details">
+                    <h1>{{ playlist.name }}</h1>
+                    <p class="playlist-stats">{{ playlist.songs|length }} треков</p>
+                    <div class="playlist-actions">
+                        <button class="play-all-btn"><i class="fas fa-play"></i> Воспроизвести все</button>
+                        <button class="shuffle-btn"><i class="fas fa-random"></i> Перемешать</button>
+                        <button class="like-btn"><i class="fas fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Список треков -->
+            <div class="tracks-list">
+                <div class="tracks-header">
+                    <div class="track-number">#</div>
+                    <div class="track-title">Название</div>
+                    <div class="track-artist">Исполнитель</div>
+                    <div class="track-duration">Длительность</div>
+                    <div class="track-actions-header">Действия</div>
+                </div>
+                
+                {% for song in playlist.songs %}
+                <div class="track-row" data-track-id="{{ song.id }}">
+                    <div class="track-number">{{ loop.index }}</div>
+                    <div class="track-info-cell">
+                        <img src="https://via.placeholder.com/40x40/{{ ['ff6b6b', '4ecdc4', '45b7d1']|random }}/ffffff?text={{ song.title[0] }}" alt="{{ song.title }}">
+                        <div>
+                            <h4>{{ song.title }}</h4>
+                        </div>
+                    </div>
+                    <div class="track-artist-cell">{{ song.artist }}</div>
+                    <div class="track-duration-cell">{{ song.duration }}</div>
+                    <div class="track-actions-cell">
+                        <button class="play-track-btn-small"><i class="fas fa-play"></i></button>
+                        <button class="add-to-playlist-btn"><i class="fas fa-plus"></i></button>
+                        <button class="more-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Плеер -->
+    <div class="player">
+        <div class="player-track-info">
+            <img src="https://via.placeholder.com/60x60/ff6b6b/ffffff?text=К" alt="Now Playing">
+            <div>
+                <h4>Кукушка</h4>
+                <p>Кино</p>
+            </div>
+        </div>
+        <div class="player-controls">
+            <button class="control-btn"><i class="fas fa-step-backward"></i></button>
+            <button class="play-pause-btn"><i class="fas fa-play"></i></button>
+            <button class="control-btn"><i class="fas fa-step-forward"></i></button>
+        </div>
+        <div class="player-progress">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="time-info">
+                <span class="current-time">1:23</span>
+                <span class="total-time">4:32</span>
+            </div>
+        </div>
+        <div class="player-options">
+            <button class="control-btn"><i class="fas fa-volume-up"></i></button>
+            <button class="control-btn"><i class="fas fa-random"></i></button>
+            <button class="control-btn"><i class="fas fa-redo"></i></button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html> 
