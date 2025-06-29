@@ -330,6 +330,10 @@ function addTrackToList(trackInfo) {
     let randomColor = colors[Math.floor(Math.random() * colors.length)];
     if (!randomColor) randomColor = 'ff6b6b';
     
+    // Получаем имя текущего пользователя
+    const currentUser = getCurrentUser();
+    const uploaderName = currentUser ? currentUser.username : 'Неизвестно';
+    
     trackElement.innerHTML = `
         <div class="track-info">
             <div class="track-cover">
@@ -351,6 +355,10 @@ function addTrackToList(trackInfo) {
                     <span class="file-size">
                         <i class="fas fa-file-audio"></i> 
                         ${trackInfo.filename}
+                    </span>
+                    <span class="uploader">
+                        <i class="fas fa-user"></i> 
+                        ${uploaderName}
                     </span>
                 </div>
             </div>
@@ -399,6 +407,40 @@ function addTrackToList(trackInfo) {
     
     // Обновляем счетчик треков
     updateTrackCount();
+}
+
+// Функция для получения информации о текущем пользователе
+function getCurrentUser() {
+    // Пытаемся получить из DOM
+    const userElement = document.querySelector('[data-user-id]');
+    if (userElement) {
+        // Ищем имя пользователя в заголовке страницы
+        const usernameElement = document.querySelector('.welcome-section h1');
+        let username = 'Пользователь';
+        if (usernameElement) {
+            const fullText = usernameElement.textContent;
+            const match = fullText.match(/Загрузка музыки - (.+)/);
+            if (match) {
+                username = match[1];
+            }
+        }
+        return {
+            id: userElement.dataset.userId,
+            username: username
+        };
+    }
+    
+    // Альтернативный способ - из localStorage
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+        try {
+            return JSON.parse(userData);
+        } catch (e) {
+            console.error('Ошибка парсинга данных пользователя:', e);
+        }
+    }
+    
+    return null;
 }
 
 function resetUploadForm() {

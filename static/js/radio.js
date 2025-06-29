@@ -15,14 +15,18 @@ window.playRadio = function(stationId, stationName, streamUrl) {
         radioAudio = null;
     }
     
+    // Проверяем, является ли это демо-режимом
+    if (streamUrl === 'demo') {
+        console.log('Запуск демо-режима');
+        createDemoAudio(stationName);
+        return;
+    }
+    
     try {
         // Показываем статус загрузки
         if (typeof showRadioStatus === 'function') {
             showRadioStatus('Подключение к радиостанции...');
         }
-        
-        // Проверяем, является ли это SomaFM станцией
-        const isSomaFM = streamUrl.includes('somafm.com');
         
         // Создаем новый аудио элемент
         radioAudio = new Audio();
@@ -37,15 +41,9 @@ window.playRadio = function(stationId, stationName, streamUrl) {
         radioAudio.loop = false;
         radioAudio.preload = 'auto';
         
-        // Добавляем специальные заголовки для SomaFM
-        if (isSomaFM) {
-            // SomaFM требует специальные заголовки
-            radioAudio.crossOrigin = 'anonymous';
-        }
-        
-        // Обработчики событий
+        // Добавляем обработчики событий
         radioAudio.addEventListener('loadstart', function() {
-            console.log('Загрузка радиостанции...');
+            console.log('Загрузка радиостанции началась...');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Загрузка радиостанции...');
             }
@@ -79,16 +77,21 @@ window.playRadio = function(stationId, stationName, streamUrl) {
         radioAudio.addEventListener('error', function(e) {
             console.error('Ошибка воспроизведения радио:', e);
             console.error('Код ошибки:', radioAudio.error ? radioAudio.error.code : 'неизвестно');
+            console.error('Сообщение ошибки:', radioAudio.error ? radioAudio.error.message : 'неизвестно');
             
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Ошибка воспроизведения');
             }
+            
+            // Показываем уведомление об ошибке
+            showNotification(`Ошибка подключения к ${stationName}. Проверьте интернет-соединение.`, 'error');
             
             // Пробуем создать демо-звук
             createDemoAudio(stationName);
         });
         
         radioAudio.addEventListener('ended', function() {
+            console.log('Радио остановлено');
             if (typeof showRadioStatus === 'function') {
                 showRadioStatus('Радио остановлено');
             }
@@ -101,7 +104,20 @@ window.playRadio = function(stationId, stationName, streamUrl) {
             }
         });
         
-        // Устанавливаем источник и начинаем воспроизведение
+        radioAudio.addEventListener('suspend', function() {
+            console.log('Радио приостановлено (suspend)');
+        });
+        
+        radioAudio.addEventListener('abort', function() {
+            console.log('Радио прервано (abort)');
+        });
+        
+        // Устанавливаем источник
+        console.log('Устанавливаем источник аудио:', streamUrl);
+        
+        // Добавляем обработку CORS
+        radioAudio.crossOrigin = 'anonymous';
+        
         radioAudio.src = streamUrl;
         
         // Добавляем таймаут для проверки подключения
@@ -111,19 +127,25 @@ window.playRadio = function(stationId, stationName, streamUrl) {
                 showNotification('Не удалось подключиться к радиостанции. Включаем демо-режим.', 'warning');
                 createDemoAudio(stationName);
             }
-        }, 10000); // 10 секунд
+        }, 15000); // 15 секунд
         
         radioAudio.addEventListener('canplay', function() {
             clearTimeout(connectionTimeout);
         });
         
         // Начинаем воспроизведение
+        console.log('Пытаемся запустить воспроизведение...');
         radioAudio.play().then(() => {
-            console.log('Радио запущено:', stationName);
+            console.log('Радио успешно запущено:', stationName);
             showNotification(`Сейчас играет: ${stationName}`, 'success');
         }).catch(error => {
             console.error('Ошибка запуска радио:', error);
+            console.error('Тип ошибки:', error.name);
+            console.error('Сообщение ошибки:', error.message);
             clearTimeout(connectionTimeout);
+            
+            // Показываем уведомление об ошибке
+            showNotification(`Ошибка запуска ${stationName}: ${error.message}`, 'error');
             
             // Пробуем создать демо-звук
             createDemoAudio(stationName);
@@ -131,6 +153,7 @@ window.playRadio = function(stationId, stationName, streamUrl) {
         
     } catch (error) {
         console.error('Ошибка создания аудио элемента:', error);
+        showNotification(`Ошибка создания аудио: ${error.message}`, 'error');
         
         // Пробуем создать демо-звук
         createDemoAudio(stationName);
@@ -191,6 +214,11 @@ function stopRadio() {
     const nowPlayingSection = document.getElementById('nowPlayingSection');
     if (nowPlayingSection) {
         nowPlayingSection.style.display = 'none';
+    }
+    
+    // Обновляем статус
+    if (typeof showRadioStatus === 'function') {
+        showRadioStatus('Радио остановлено');
     }
     
     showNotification('Радио остановлено', 'info');
@@ -571,36 +599,80 @@ function displayRadioStations(stations) {
     
     stations.forEach(station => {
         const stationCard = document.createElement('div');
-        stationCard.className = `radio-card ${station.available ? 'available' : 'unavailable'}`;
+        stationCard.className = 'radio-card';
         stationCard.setAttribute('data-station-id', station.id);
-        
-        const statusIcon = station.available ? 'fa-check-circle' : 'fa-exclamation-triangle';
-        const statusClass = station.available ? 'status-available' : 'status-unavailable';
         
         stationCard.innerHTML = `
             <div class="radio-cover">
                 <img src="${station.image}" alt="${station.name}">
                 <div class="radio-overlay">
-                    <button class="play-radio-btn ${station.available ? '' : 'disabled'}" 
-                            onclick="playRadio('${station.id}', '${station.name}', '${station.stream_url}')"
-                            ${station.available ? '' : 'disabled'}>
+                    <button class="play-radio-btn" 
+                            onclick="playRadio('${station.id}', '${station.name}', '${station.stream_url}')">
                         <i class="fas fa-play"></i>
                     </button>
-                </div>
-                <div class="radio-status-indicator ${statusClass}">
-                    <i class="fas ${statusIcon}"></i>
                 </div>
             </div>
             <div class="radio-info">
                 <h3>${station.name}</h3>
                 <p class="radio-genre">${station.genre}</p>
                 <p class="radio-description">${station.description}</p>
-                <p class="radio-status">${station.available ? 'Доступно' : 'Недоступно'}</p>
+                <div class="radio-status">
+                    <span class="status-text">Нажмите для воспроизведения</span>
+                </div>
             </div>
         `;
         
         radioGrid.appendChild(stationCard);
+        
+        // Добавляем обработчик для проверки доступности при наведении
+        stationCard.addEventListener('mouseenter', function() {
+            checkStationAvailability(station.stream_url, stationCard);
+        });
     });
+}
+
+// Функция для проверки доступности радиостанции
+function checkStationAvailability(streamUrl, stationCard) {
+    const statusElement = stationCard.querySelector('.status-text');
+    if (!statusElement) return;
+    
+    statusElement.textContent = 'Проверка доступности...';
+    
+    // Создаем временный аудио элемент для проверки
+    const testAudio = new Audio();
+    let timeoutId;
+    
+    const cleanup = () => {
+        clearTimeout(timeoutId);
+        testAudio.removeEventListener('canplay', onCanPlay);
+        testAudio.removeEventListener('error', onError);
+        testAudio.src = '';
+    };
+    
+    const onCanPlay = () => {
+        cleanup();
+        statusElement.textContent = 'Доступно';
+        statusElement.style.color = '#4CAF50';
+    };
+    
+    const onError = () => {
+        cleanup();
+        statusElement.textContent = 'Недоступно';
+        statusElement.style.color = '#f44336';
+    };
+    
+    testAudio.addEventListener('canplay', onCanPlay);
+    testAudio.addEventListener('error', onError);
+    
+    // Устанавливаем таймаут
+    timeoutId = setTimeout(() => {
+        cleanup();
+        statusElement.textContent = 'Проверка не завершена';
+        statusElement.style.color = '#ff9800';
+    }, 5000);
+    
+    // Пытаемся загрузить поток
+    testAudio.src = streamUrl;
 }
 
 // Функция для обновления радиостанций

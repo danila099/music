@@ -58,6 +58,23 @@ function initEventHandlers() {
             saveSetting('default_volume', this.value);
         });
     }
+    
+    // Обработчик для закрытия модальных окон при клике вне их области
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            closeModal(e.target.id);
+        }
+    });
+    
+    // Обработчик для закрытия модальных окон по клавише Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const activeModal = document.querySelector('.modal.active');
+            if (activeModal) {
+                closeModal(activeModal.id);
+            }
+        }
+    });
 }
 
 function loadUserData() {
@@ -157,18 +174,38 @@ function loadTabContent(tabName) {
 function loadUserTracks() {
     console.log('Загрузка пользовательских треков');
     
-    fetch('/api/user/tracks')
+    fetch('/api/user_tracks')
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayUserTracks(data.tracks);
-        } else {
-            console.error('Ошибка загрузки треков:', data.error);
-        }
+    .then(tracks => {
+        // Фильтруем только треки текущего пользователя
+        const currentUserId = getCurrentUserId();
+        const userTracks = tracks.filter(track => track.user_id == currentUserId);
+        displayUserTracks(userTracks);
     })
     .catch(error => {
         console.error('Ошибка загрузки треков:', error);
     });
+}
+
+function getCurrentUserId() {
+    // Получаем ID текущего пользователя из data-user-id в body
+    const body = document.body;
+    if (body && body.dataset.userId) {
+        return body.dataset.userId;
+    }
+    
+    // Альтернативный способ - из localStorage
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+        try {
+            const user = JSON.parse(userData);
+            return user.id;
+        } catch (e) {
+            console.error('Ошибка парсинга данных пользователя:', e);
+        }
+    }
+    
+    return null;
 }
 
 function displayUserTracks(tracks) {
@@ -202,22 +239,45 @@ function displayUserTracks(tracks) {
                 <div class="track-details">
                     <h4>${track.title}</h4>
                     <p>${track.artist}</p>
-                    <span class="track-meta">
-                        <i class="fas fa-clock"></i> ${track.duration}
-                        <i class="fas fa-calendar"></i> ${track.upload_date}
-                    </span>
+                    <div class="track-meta">
+                        <span class="upload-date">
+                            <i class="fas fa-calendar"></i> 
+                            ${track.upload_date || 'Неизвестно'}
+                        </span>
+                        ${track.uploader ? `
+                        <span class="uploader">
+                            <i class="fas fa-user"></i> 
+                            ${track.uploader}
+                        </span>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
-            <div class="track-controls">
-                <button class="play-btn" onclick="togglePlayPause('user_${track.id}')" data-track-id="user_${track.id}">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button class="like-btn" onclick="toggleLike('user_${track.id}', 'user')" data-track-id="user_${track.id}">
-                    <i class="fas fa-heart"></i>
-                </button>
-                <button class="delete-btn" onclick="deleteTrack('user_${track.id}')" data-track-id="user_${track.id}">
-                    <i class="fas fa-trash"></i>
-                </button>
+            <div class="track-actions">
+                <div class="track-stats">
+                    <span class="duration">${track.duration || '0:00'}</span>
+                    <div class="like-count">
+                        <i class="fas fa-heart"></i>
+                        <span class="count">0</span>
+                    </div>
+                </div>
+                <div class="track-controls">
+                    <button class="play-btn" onclick="togglePlayPause('user_${track.id}')" data-track-id="user_${track.id}">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="like-btn" onclick="toggleLike('user_${track.id}', 'user')" data-track-id="user_${track.id}">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="delete-btn" onclick="deleteTrack('user_${track.id}')" data-track-id="user_${track.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="track-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span class="progress-text">0%</span>
+                </div>
             </div>
         </div>
     `).join('');
@@ -575,18 +635,11 @@ function createNewPlaylist() {
 }
 
 // Функции для работы с модальными окнами
-function editProfile() {
-    openModal('edit-profile-modal');
-}
-
-function createPlaylist() {
-    openModal('create-playlist-modal');
-}
-
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'flex';
+        modal.classList.add('active');
     }
 }
 
@@ -594,7 +647,21 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('active');
     }
+}
+
+function openEditProfileModal() {
+    openModal('edit-profile-modal');
+}
+
+function openCreatePlaylistModal() {
+    openModal('create-playlist-modal');
+}
+
+function openChangePasswordModal() {
+    // Пока просто показываем уведомление, что функция в разработке
+    showNotification('Функция изменения пароля находится в разработке', 'info');
 }
 
 // Функции для работы с треками
@@ -748,10 +815,13 @@ function showNotification(message, type = 'info') {
 }
 
 // Делаем функции глобальными
-window.editProfile = editProfile;
-window.createPlaylist = createPlaylist;
+window.editProfile = openEditProfileModal;
+window.createPlaylist = openCreatePlaylistModal;
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.openEditProfileModal = openEditProfileModal;
+window.openCreatePlaylistModal = openCreatePlaylistModal;
+window.openChangePasswordModal = openChangePasswordModal;
 window.switchTab = switchTab;
 window.sortFavorites = sortFavorites;
 window.filterHistory = filterHistory;

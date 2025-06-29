@@ -299,68 +299,94 @@ function updatePlayerInfo(trackId, trackType, customName = null) {
 
 // Показ уведомлений
 function showNotification(message, type = 'info') {
-    // Создаем уведомление
+    // Создаем элемент уведомления
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
+        <div class="notification-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
     `;
     
-    // Добавляем стили
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease-out;
-        max-width: 300px;
-    `;
+    // Добавляем стили для уведомлений, если их еще нет
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                padding: 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease;
+                max-width: 400px;
+            }
+            
+            .notification-success {
+                border-left: 4px solid #4CAF50;
+            }
+            
+            .notification-error {
+                border-left: 4px solid #f44336;
+            }
+            
+            .notification-info {
+                border-left: 4px solid #2196F3;
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex: 1;
+            }
+            
+            .notification-close {
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #666;
+                padding: 4px;
+            }
+            
+            .notification-close:hover {
+                color: #333;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     document.body.appendChild(notification);
     
-    // Удаляем через 4 секунды
+    // Автоматически удаляем уведомление через 5 секунд
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                document.body.removeChild(notification);
-            }
-        }, 300);
-    }, 4000);
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
 }
-
-// Добавляем CSS анимации для уведомлений
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-    
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.05);
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Обработчик закрытия страницы
 window.addEventListener('beforeunload', function() {
@@ -408,8 +434,8 @@ function updateTrackUI(trackId, isPlaying) {
         const overlayBtn = trackElement.querySelector('.track-overlay .play-track-btn');
         if (overlayBtn) {
             overlayBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-        }
-        
+    }
+    
         // Обновляем кнопку воспроизведения в controls
         const controlBtn = trackElement.querySelector('.track-controls .play-btn');
         if (controlBtn) {
@@ -469,37 +495,45 @@ let isPlaying = false;
 
 // Функция для переключения лайка
 window.toggleLike = function(trackId, trackType) {
-    fetch('/api/toggle_like', {
+    const userId = document.body.getAttribute('data-user-id');
+    if (!userId) {
+        showNotification('Необходимо войти в систему для лайков', 'error');
+        return;
+    }
+    
+    fetch(`/api/tracks/${trackId}/like`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            track_id: trackId,
             track_type: trackType
         })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success !== undefined) {
-            const likeBtn = document.querySelector(`[data-track-id="${trackId}"][data-track-type="${trackType}"] .like-btn`);
+        if (data.success) {
+            // Обновляем UI кнопки лайка
+            const likeBtn = document.querySelector(`[data-track-id="${trackId}"] .like-btn`);
             if (likeBtn) {
                 if (data.liked) {
                     likeBtn.classList.add('liked');
+                    likeBtn.innerHTML = '<i class="fas fa-heart"></i>';
                 } else {
                     likeBtn.classList.remove('liked');
+                    likeBtn.innerHTML = '<i class="far fa-heart"></i>';
                 }
             }
             
-            // Обновляем счетчик лайков
-            const likeCount = document.querySelector(`[data-track-id="${trackId}"][data-track-type="${trackType}"] .like-count .count`);
-            if (likeCount) {
-                likeCount.textContent = data.like_count || 0;
-            }
+            // Показываем уведомление
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.error || 'Ошибка обновления лайка', 'error');
         }
     })
     .catch(error => {
         console.error('Ошибка переключения лайка:', error);
+        showNotification('Ошибка обновления лайка', 'error');
     });
 };
 
@@ -615,7 +649,7 @@ function updatePlayer(trackId, trackType) {
     
     // Показываем плеер
     if (globalPlayer) {
-        globalPlayer.style.display = 'block';
+    globalPlayer.style.display = 'block';
     }
     
     // Обновляем кнопку воспроизведения
@@ -684,7 +718,7 @@ window.skipBackward = function() {
     if (currentAudio) {
         currentAudio.currentTime = Math.max(currentAudio.currentTime - 10, 0);
     }
-};
+}; 
 
 // Функция для переключения мута
 window.toggleMute = function() {
