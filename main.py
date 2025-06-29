@@ -349,6 +349,46 @@ radio_stations = [
         'stream_url': 'https://radiorecord.hostingradio.ru/rr_main96.aacp',
         'image': '/static/images/placeholder.svg',
         'description': 'Популярная музыка'
+    },
+    {
+        'id': 4,
+        'name': 'Эхо Москвы',
+        'genre': 'Разговорное',
+        'stream_url': 'https://em-cdn.livetrack.in/emgspb/emgspb/icecast.audio',
+        'image': '/static/images/placeholder.svg',
+        'description': 'Информационное радио'
+    },
+    {
+        'id': 5,
+        'name': 'Дорожное Радио',
+        'genre': 'Поп',
+        'stream_url': 'https://dorognoe.hostingradio.ru:8000/dorognoe',
+        'image': '/static/images/placeholder.svg',
+        'description': 'Музыка для дороги'
+    },
+    {
+        'id': 6,
+        'name': 'Радио Дача',
+        'genre': 'Поп',
+        'stream_url': 'http://listen13.vdfm.ru:8000/dacha',
+        'image': '/static/images/placeholder.svg',
+        'description': 'Популярная музыка'
+    },
+    {
+        'id': 7,
+        'name': 'Тестовое радио',
+        'genre': 'Тест',
+        'stream_url': 'https://stream.radio.co/s2e9b236e3/listen',
+        'image': '/static/images/placeholder.svg',
+        'description': 'Тестовая радиостанция для проверки'
+    },
+    {
+        'id': 8,
+        'name': 'Демо радио',
+        'genre': 'Демо',
+        'stream_url': 'demo',
+        'image': '/static/images/placeholder.svg',
+        'description': 'Демо-режим с синтезированным звуком'
     }
 ]
 
@@ -359,9 +399,20 @@ def get_user_tracks(user_id=None):
         cursor = conn.cursor()
         
         if user_id:
-            cursor.execute('SELECT * FROM user_tracks WHERE user_id = ? ORDER BY upload_date DESC', (user_id,))
+            cursor.execute('''
+                SELECT ut.*, u.username 
+                FROM user_tracks ut 
+                JOIN users u ON ut.user_id = u.id 
+                WHERE ut.user_id = ? 
+                ORDER BY ut.upload_date DESC
+            ''', (user_id,))
         else:
-            cursor.execute('SELECT * FROM user_tracks ORDER BY upload_date DESC')
+            cursor.execute('''
+                SELECT ut.*, u.username 
+                FROM user_tracks ut 
+                JOIN users u ON ut.user_id = u.id 
+                ORDER BY ut.upload_date DESC
+            ''')
             
         tracks = cursor.fetchall()
         conn.close()
@@ -387,7 +438,8 @@ def get_user_tracks(user_id=None):
                 'artist': track[5] or 'Неизвестный исполнитель',
                 'duration': f"{int(track[6] or 0)//60}:{int(track[6] or 0)%60:02d}",
                 'filename': track[2],
-                'upload_date': formatted_date
+                'upload_date': formatted_date,
+                'uploader': track[8]  # username
             })
         
         return user_tracks
@@ -395,13 +447,59 @@ def get_user_tracks(user_id=None):
         print(f"Ошибка получения пользовательских треков: {e}")
         return []
 
+def get_all_tracks():
+    """Получить все треки с информацией о пользователях"""
+    try:
+        conn = sqlite3.connect('music.db', timeout=20.0)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT ut.*, u.username 
+            FROM user_tracks ut 
+            JOIN users u ON ut.user_id = u.id 
+            ORDER BY ut.upload_date DESC
+        ''')
+            
+        tracks = cursor.fetchall()
+        conn.close()
+        
+        all_tracks = []
+        for track in tracks:
+            upload_date = track[7]  # upload_date
+            if upload_date:
+                try:
+                    if isinstance(upload_date, str):
+                        formatted_date = upload_date
+                    else:
+                        formatted_date = upload_date.strftime('%d.%m.%Y %H:%M')
+                except:
+                    formatted_date = 'Неизвестно'
+            else:
+                formatted_date = 'Неизвестно'
+            
+            all_tracks.append({
+                'id': track[0],
+                'user_id': track[1],
+                'title': track[4] or track[3].split('.')[0],
+                'artist': track[5] or 'Неизвестный исполнитель',
+                'duration': f"{int(track[6] or 0)//60}:{int(track[6] or 0)%60:02d}",
+                'filename': track[2],
+                'upload_date': formatted_date,
+                'uploader': track[8]  # username
+            })
+        
+        return all_tracks
+    except Exception as e:
+        print(f"Ошибка получения всех треков: {e}")
+        return []
+
 # Маршруты
 @app.route('/')
 def index():
     user = get_current_user()
-    user_tracks = get_user_tracks(user['id'] if user else None)
+    all_tracks = get_all_tracks()
     return render_template('index.html', playlists=playlists, artists=artists, 
-                         radio_stations=radio_stations, user_tracks=user_tracks, user=user)
+                         radio_stations=radio_stations, user_tracks=all_tracks, user=user)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -530,14 +628,13 @@ def search():
                     })
         
         # Поиск в пользовательских треках
-        if user:
-            user_tracks = get_user_tracks(user['id'])
-            for track in user_tracks:
-                if query.lower() in track['title'].lower() or query.lower() in track['artist'].lower():
-                    results.append({
-                        'song': track,
-                        'type': 'user'
-                    })
+        all_tracks = get_all_tracks()
+        for track in all_tracks:
+            if query.lower() in track['title'].lower() or query.lower() in track['artist'].lower():
+                results.append({
+                    'song': track,
+                    'type': 'user'
+                })
         
         return render_template('search.html', results=results, query=query, user=user)
     return redirect(url_for('index'))
@@ -627,12 +724,8 @@ def play_track(track_type, track_id):
 # API маршруты
 @app.route('/api/user_tracks')
 def api_user_tracks():
-    """API для получения пользовательских треков"""
-    user = get_current_user()
-    if not user:
-        return jsonify([])
-    
-    tracks = get_user_tracks(user['id'])
+    """API для получения всех пользовательских треков"""
+    tracks = get_all_tracks()
     return jsonify(tracks)
 
 @app.route('/api/radio_stations')
@@ -646,6 +739,11 @@ def api_playlists():
 @app.route('/api/artists')
 def api_artists():
     return jsonify(artists)
+
+@app.route('/test_radio')
+def test_radio():
+    """Страница для тестирования радио"""
+    return send_file('test_radio.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
