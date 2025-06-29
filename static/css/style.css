@@ -776,13 +776,31 @@ body::before {
 
 .user-track-item .track-meta {
     display: flex;
-    gap: 1rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+}
+
+.user-track-item .track-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .user-track-item .track-meta i {
-    margin-right: 0.25rem;
+    color: #666;
+    font-size: 11px;
+}
+
+.user-track-item .uploader {
+    color: #4facfe;
+    font-weight: 500;
+}
+
+.user-track-item .uploader i {
+    color: #4facfe;
 }
 
 .user-track-item .track-actions {
@@ -1686,7 +1704,7 @@ body::before {
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: var(--transition-normal);
+    transition: opacity 0.3s ease;
 }
 
 .radio-card:hover .radio-overlay {
@@ -1694,23 +1712,27 @@ body::before {
 }
 
 .play-radio-btn {
+    background: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 50%;
     width: 60px;
     height: 60px;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent-gradient);
-    color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: 20px;
     cursor: pointer;
-    transition: var(--transition-normal);
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .play-radio-btn:hover {
+    background: #45a049;
     transform: scale(1.1);
-    box-shadow: var(--shadow-glow);
+}
+
+.play-radio-btn:active {
+    transform: scale(0.95);
 }
 
 /* Секция "Сейчас играет" */
@@ -1913,7 +1935,7 @@ body::before {
 }
 
 .radio-card:hover .radio-cover img {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .radio-overlay {
@@ -1927,7 +1949,7 @@ body::before {
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: var(--transition-normal);
+    transition: opacity 0.3s ease;
 }
 
 .radio-card:hover .radio-overlay {
@@ -1935,23 +1957,27 @@ body::before {
 }
 
 .play-radio-btn {
+    background: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 50%;
     width: 60px;
     height: 60px;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent-gradient);
-    color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: 20px;
     cursor: pointer;
-    transition: var(--transition-normal);
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .play-radio-btn:hover {
+    background: #45a049;
     transform: scale(1.1);
-    box-shadow: var(--shadow-glow);
+}
+
+.play-radio-btn:active {
+    transform: scale(0.95);
 }
 
 .play-radio-btn.disabled {
@@ -3564,4 +3590,659 @@ input:checked + .slider:before {
     .auth-btn i {
         font-size: 1rem;
     }
+}
+
+.radio-status {
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.radio-status .status-text {
+    color: #666;
+    transition: color 0.3s ease;
+}
+
+.radio-card:hover .radio-overlay {
+    opacity: 1;
+}
+
+.radio-card:hover .radio-cover img {
+    transform: scale(1.05);
+}
+
+.radio-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.play-radio-btn {
+    background: #4facfe;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.play-radio-btn:hover {
+    background: #45a049;
+    transform: scale(1.1);
+}
+
+.play-radio-btn:active {
+    transform: scale(0.95);
+}
+
+/* Стили для плейлистов */
+.create-playlist-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.create-playlist-form {
+    max-width: 600px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+.create-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.create-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.playlists-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.refresh-btn {
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    color: #666;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.refresh-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.playlists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.playlist-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.playlist-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.playlist-cover {
+    position: relative;
+    height: 160px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.playlist-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.playlist-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.playlist-card:hover .playlist-overlay {
+    opacity: 1;
+}
+
+.play-btn {
+    background: white;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.play-btn:hover {
+    transform: scale(1.1);
+}
+
+.playlist-info {
+    padding: 16px;
+}
+
+.playlist-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.playlist-description {
+    margin: 0 0 12px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.playlist-meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: #888;
+}
+
+.playlist-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.playlist-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    color: #666;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.action-btn.delete-btn:hover {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #ccc;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Модальное окно */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+    background: #f8f9fa;
+}
+
+.modal-body {
+    padding: 24px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.playlist-item:hover {
+    background: #f8f9fa;
+}
+
+.playlist-item-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.playlist-item-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.add-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.add-btn:hover {
+    background: #0056b3;
+}
+
+/* Кнопки лайков */
+.like-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.like-btn:hover {
+    background: #f8f9fa;
+    color: #e74c3c;
+}
+
+.like-btn.liked {
+    color: #e74c3c;
+}
+
+.like-btn.liked:hover {
+    color: #c0392b;
+}
+
+.like-count {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Кнопка добавления в плейлист */
+.add-to-playlist-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-to-playlist-btn:hover {
+    background: #f8f9fa;
+    color: #007bff;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .playlists-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .create-playlist-form {
+        max-width: 100%;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+}
+
+/* Стили для кнопок в настройках профиля */
+.profile-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.edit-profile-btn,
+.change-password-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.edit-profile-btn:hover,
+.change-password-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.edit-profile-btn i,
+.change-password-btn i {
+    font-size: 16px;
+}
+
+/* Стили для модальных окон */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.cancel-btn {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #ccc;
+}
+
+.save-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
