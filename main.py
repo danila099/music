@@ -280,6 +280,226 @@ def get_current_user():
     session_id = session.get('session_id')
     return get_user_by_session(session_id)
 
+# Функции для работы с плейлистами
+def create_playlist(user_id, name, description=None, is_public=True):
+    """Создание нового плейлиста"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO playlists (user_id, name, description, is_public)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, name, description, is_public))
+        playlist_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return playlist_id
+    except Exception as e:
+        print(f"Ошибка создания плейлиста: {e}")
+        return None
+
+def get_user_playlists(user_id):
+    """Получение плейлистов пользователя"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT p.*, u.username as creator_name,
+                   (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id) as track_count
+            FROM playlists p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ? OR p.is_public = 1
+            ORDER BY p.created_date DESC
+        ''', (user_id,))
+        playlists = cursor.fetchall()
+        conn.close()
+        
+        result = []
+        for playlist in playlists:
+            result.append({
+                'id': playlist[0],
+                'user_id': playlist[1],
+                'name': playlist[2],
+                'description': playlist[3],
+                'is_public': bool(playlist[4]),
+                'created_date': playlist[5],
+                'creator_name': playlist[6],
+                'track_count': playlist[7]
+            })
+        return result
+    except Exception as e:
+        print(f"Ошибка получения плейлистов: {e}")
+        return []
+
+def get_playlist_tracks(playlist_id):
+    """Получение треков плейлиста"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT pt.*, ut.title, ut.artist, ut.duration, ut.filename, u.username as uploader
+            FROM playlist_tracks pt
+            LEFT JOIN user_tracks ut ON pt.track_id = ut.id AND pt.track_type = 'user'
+            LEFT JOIN users u ON ut.user_id = u.id
+            WHERE pt.playlist_id = ?
+            ORDER BY pt.position, pt.id
+        ''', (playlist_id,))
+        tracks = cursor.fetchall()
+        conn.close()
+        
+        result = []
+        for track in tracks:
+            if track[3] == 'user' and track[4]:  # user track
+                result.append({
+                    'id': track[2],
+                    'track_type': track[3],
+                    'position': track[4],
+                    'title': track[5] or 'Неизвестно',
+                    'artist': track[6] or 'Неизвестный исполнитель',
+                    'duration': f"{int(track[7] or 0)//60}:{int(track[7] or 0)%60:02d}",
+                    'filename': track[8],
+                    'uploader': track[9]
+                })
+        return result
+    except Exception as e:
+        print(f"Ошибка получения треков плейлиста: {e}")
+        return []
+
+def add_track_to_playlist(playlist_id, track_id, track_type, position=None):
+    """Добавление трека в плейлист"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        
+        # Если позиция не указана, добавляем в конец
+        if position is None:
+            cursor.execute('''
+                SELECT COALESCE(MAX(position), 0) + 1
+                FROM playlist_tracks
+                WHERE playlist_id = ?
+            ''', (playlist_id,))
+            position = cursor.fetchone()[0]
+        
+        cursor.execute('''
+            INSERT INTO playlist_tracks (playlist_id, track_id, track_type, position)
+            VALUES (?, ?, ?, ?)
+        ''', (playlist_id, track_id, track_type, position))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка добавления трека в плейлист: {e}")
+        return False
+
+def remove_track_from_playlist(playlist_id, track_id, track_type):
+    """Удаление трека из плейлиста"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            DELETE FROM playlist_tracks
+            WHERE playlist_id = ? AND track_id = ? AND track_type = ?
+        ''', (playlist_id, track_id, track_type))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка удаления трека из плейлиста: {e}")
+        return False
+
+def delete_playlist(playlist_id, user_id):
+    """Удаление плейлиста"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        
+        # Проверяем, что пользователь является владельцем плейлиста
+        cursor.execute('SELECT user_id FROM playlists WHERE id = ?', (playlist_id,))
+        result = cursor.fetchone()
+        if not result or result[0] != user_id:
+            conn.close()
+            return False
+        
+        # Удаляем треки плейлиста
+        cursor.execute('DELETE FROM playlist_tracks WHERE playlist_id = ?', (playlist_id,))
+        # Удаляем плейлист
+        cursor.execute('DELETE FROM playlists WHERE id = ?', (playlist_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Ошибка удаления плейлиста: {e}")
+        return False
+
+# Функции для работы с лайками
+def toggle_like(user_id, track_id, track_type):
+    """Переключение лайка трека"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        
+        # Проверяем, есть ли уже лайк
+        cursor.execute('''
+            SELECT id FROM likes
+            WHERE user_id = ? AND track_id = ? AND track_type = ?
+        ''', (user_id, track_id, track_type))
+        
+        existing_like = cursor.fetchone()
+        
+        if existing_like:
+            # Удаляем лайк
+            cursor.execute('''
+                DELETE FROM likes
+                WHERE user_id = ? AND track_id = ? AND track_type = ?
+            ''', (user_id, track_id, track_type))
+            liked = False
+        else:
+            # Добавляем лайк
+            cursor.execute('''
+                INSERT INTO likes (user_id, track_id, track_type)
+                VALUES (?, ?, ?)
+            ''', (user_id, track_id, track_type))
+            liked = True
+        
+        conn.commit()
+        conn.close()
+        return liked
+    except Exception as e:
+        print(f"Ошибка переключения лайка: {e}")
+        return None
+
+def get_like_count(track_id, track_type):
+    """Получение количества лайков трека"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT COUNT(*) FROM likes
+            WHERE track_id = ? AND track_type = ?
+        ''', (track_id, track_type))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception as e:
+        print(f"Ошибка получения количества лайков: {e}")
+        return 0
+
+def is_track_liked_by_user(user_id, track_id, track_type):
+    """Проверка, лайкнул ли пользователь трек"""
+    try:
+        conn = sqlite3.connect('music.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id FROM likes
+            WHERE user_id = ? AND track_id = ? AND track_type = ?
+        ''', (user_id, track_id, track_type))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        print(f"Ошибка проверки лайка: {e}")
+        return False
+
 # Плейлисты
 playlists = [
     {
@@ -384,11 +604,11 @@ radio_stations = [
     },
     {
         'id': 8,
-        'name': 'Демо радио',
-        'genre': 'Демо',
-        'stream_url': 'demo',
+        'name': 'Шансон радио',
+        'genre': 'Шансон',
+        'stream_url': 'http://www.radioprofusion.com/radio.php',
         'image': '/static/images/placeholder.svg',
-        'description': 'Демо-режим с синтезированным звуком'
+        'description': 'Шансон'
     }
 ]
 
@@ -602,6 +822,13 @@ def search_advanced():
     user = get_current_user()
     return render_template('search_advanced.html', user=user)
 
+@app.route('/playlists')
+def playlists_page():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('playlists.html', user=user)
+
 @app.route('/playlist/<int:playlist_id>')
 def playlist(playlist_id):
     user = get_current_user()
@@ -744,6 +971,146 @@ def api_artists():
 def test_radio():
     """Страница для тестирования радио"""
     return send_file('test_radio.html')
+
+# API маршруты для плейлистов
+@app.route('/api/playlists/create', methods=['POST'])
+def api_create_playlist():
+    """API для создания плейлиста"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    is_public = data.get('is_public', True)
+    
+    if not name:
+        return jsonify({'error': 'Название плейлиста обязательно'}), 400
+    
+    playlist_id = create_playlist(user['id'], name, description, is_public)
+    if playlist_id:
+        return jsonify({
+            'success': True,
+            'playlist_id': playlist_id,
+            'message': 'Плейлист создан успешно'
+        })
+    else:
+        return jsonify({'error': 'Ошибка создания плейлиста'}), 500
+
+@app.route('/api/playlists/<int:playlist_id>/tracks', methods=['POST'])
+def api_add_track_to_playlist(playlist_id):
+    """API для добавления трека в плейлист"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    data = request.get_json()
+    track_id = data.get('track_id')
+    track_type = data.get('track_type', 'user')
+    
+    if not track_id:
+        return jsonify({'error': 'ID трека обязателен'}), 400
+    
+    success = add_track_to_playlist(playlist_id, track_id, track_type)
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Трек добавлен в плейлист'
+        })
+    else:
+        return jsonify({'error': 'Ошибка добавления трека'}), 500
+
+@app.route('/api/playlists/<int:playlist_id>/tracks/<track_id>', methods=['DELETE'])
+def api_remove_track_from_playlist(playlist_id, track_id):
+    """API для удаления трека из плейлиста"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    track_type = request.args.get('track_type', 'user')
+    
+    success = remove_track_from_playlist(playlist_id, track_id, track_type)
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Трек удален из плейлиста'
+        })
+    else:
+        return jsonify({'error': 'Ошибка удаления трека'}), 500
+
+@app.route('/api/playlists/<int:playlist_id>', methods=['DELETE'])
+def api_delete_playlist(playlist_id):
+    """API для удаления плейлиста"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    success = delete_playlist(playlist_id, user['id'])
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Плейлист удален'
+        })
+    else:
+        return jsonify({'error': 'Ошибка удаления плейлиста'}), 500
+
+@app.route('/api/user/playlists')
+def api_user_playlists():
+    """API для получения плейлистов пользователя"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    playlists = get_user_playlists(user['id'])
+    return jsonify(playlists)
+
+@app.route('/api/playlists/<int:playlist_id>/tracks')
+def api_playlist_tracks(playlist_id):
+    """API для получения треков плейлиста"""
+    tracks = get_playlist_tracks(playlist_id)
+    return jsonify(tracks)
+
+# API маршруты для лайков
+@app.route('/api/tracks/<track_id>/like', methods=['POST'])
+def api_toggle_like(track_id):
+    """API для переключения лайка трека"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Необходима авторизация'}), 401
+    
+    data = request.get_json()
+    track_type = data.get('track_type', 'user')
+    
+    liked = toggle_like(user['id'], track_id, track_type)
+    if liked is not None:
+        like_count = get_like_count(track_id, track_type)
+        return jsonify({
+            'success': True,
+            'liked': liked,
+            'like_count': like_count,
+            'message': 'Лайк обновлен'
+        })
+    else:
+        return jsonify({'error': 'Ошибка обновления лайка'}), 500
+
+@app.route('/api/tracks/<track_id>/like')
+def api_get_like_status(track_id):
+    """API для получения статуса лайка трека"""
+    user = get_current_user()
+    track_type = request.args.get('track_type', 'user')
+    
+    if user:
+        is_liked = is_track_liked_by_user(user['id'], track_id, track_type)
+    else:
+        is_liked = False
+    
+    like_count = get_like_count(track_id, track_type)
+    
+    return jsonify({
+        'liked': is_liked,
+        'like_count': like_count
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
