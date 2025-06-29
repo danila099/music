@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Загрузка музыки - Музыка</title>
+    <title>Плейлисты - Музыка</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -24,7 +24,7 @@
         <nav class="sidebar-nav">
             <ul>
                 <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Главная</a></li>
-                <li><a href="{{ url_for('upload') }}" class="active"><i class="fas fa-upload"></i> Загрузить</a></li>
+                <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
                 <li><a href="{{ url_for('radio') }}"><i class="fas fa-radio"></i> Радио</a></li>
                 <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
                 <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
@@ -82,129 +82,68 @@
         <div class="content">
             <!-- Заголовок -->
             <div class="welcome-section">
-                <h1>Загрузка музыки - {{ user.username }}</h1>
-                <p>Добавьте свои любимые треки в библиотеку</p>
+                <h1>Мои плейлисты</h1>
+                <p>Создавайте и управляйте своими плейлистами</p>
             </div>
 
-            <!-- Форма загрузки -->
-            <div class="upload-section">
-                <div class="upload-card">
-                    <div class="upload-header">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <h2>Загрузить новый трек</h2>
-                        <p>Поддерживаемые форматы: MP3, WAV, FLAC, M4A, OGG (до 50MB)</p>
-                    </div>
-                    
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <div class="file-upload-area" id="fileUploadArea">
-                            <i class="fas fa-music"></i>
-                            <p>Перетащите файл сюда или нажмите для выбора</p>
-                            <input type="file" id="musicFile" name="file" accept=".mp3,.wav,.flac,.m4a,.ogg" style="display: none;">
+            <!-- Создание плейлиста -->
+            <div class="create-playlist-section">
+                <div class="section-header">
+                    <h2>Создать новый плейлист</h2>
+                </div>
+                <div class="create-playlist-form">
+                    <form id="createPlaylistForm">
+                        <div class="form-group">
+                            <label for="playlistName">Название плейлиста</label>
+                            <input type="text" id="playlistName" name="name" placeholder="Введите название плейлиста" required>
                         </div>
-                        
-                        <div class="track-info-form" id="trackInfoForm" style="display: none;">
-                            <div class="form-group">
-                                <label for="trackTitle">Название трека</label>
-                                <input type="text" id="trackTitle" name="title" placeholder="Введите название трека">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="trackArtist">Исполнитель</label>
-                                <input type="text" id="trackArtist" name="artist" placeholder="Введите имя исполнителя">
-                            </div>
-                            
-                            <div class="upload-progress" id="uploadProgress" style="display: none;">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="progressFill"></div>
-                                </div>
-                                <p id="progressText">Загрузка...</p>
-                            </div>
-                            
-                            <button type="submit" class="upload-btn" id="uploadBtn">
-                                <i class="fas fa-upload"></i> Загрузить трек
-                            </button>
+                        <div class="form-group">
+                            <label for="playlistDescription">Описание</label>
+                            <textarea id="playlistDescription" name="description" placeholder="Описание плейлиста (необязательно)"></textarea>
                         </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="playlistPublic" name="is_public" checked>
+                                <span class="checkmark"></span>
+                                Публичный плейлист
+                            </label>
+                        </div>
+                        <button type="submit" class="create-btn">
+                            <i class="fas fa-plus"></i> Создать плейлист
+                        </button>
                     </form>
                 </div>
             </div>
 
-            <!-- Пользовательские треки -->
-            <div class="user-tracks-section">
+            <!-- Список плейлистов -->
+            <div class="playlists-section">
                 <div class="section-header">
-                    <h2>Мои треки</h2>
-                    <span class="track-count">{{ user_tracks|length }} треков</span>
+                    <h2>Мои плейлисты</h2>
+                    <button class="refresh-btn" onclick="loadPlaylists()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
                 </div>
                 
-                {% if user_tracks %}
-                <div class="user-tracks-list">
-                    {% for track in user_tracks %}
-                    <div class="user-track-item" data-track-id="user_{{ track.id }}" data-track-type="user">
-                        <div class="track-info">
-                            <div class="track-cover">
-                                <img src="https://via.placeholder.com/60x60/{{ ['ff6b6b', '4ecdc4', '45b7d1', '96ceb4', 'ffeaa7', 'dda0dd']|random }}/ffffff?text={{ track.title[0]|upper }}" alt="Track">
-                                <div class="track-overlay">
-                                    <button class="play-track-btn" onclick="togglePlayPause('user_{{ track.id }}')">
-                                        <i class="fas fa-play"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="track-details">
-                                <h4>{{ track.title }}</h4>
-                                <p>{{ track.artist }}</p>
-                                <div class="track-meta">
-                                    <span class="upload-date">
-                                        <i class="fas fa-calendar"></i> 
-                                        {{ track.upload_date if track.upload_date else 'Неизвестно' }}
-                                    </span>
-                                    <span class="file-size">
-                                        <i class="fas fa-file-audio"></i> 
-                                        {{ track.filename }}
-                                    </span>
-                                    {% if track.uploader %}
-                                    <span class="uploader">
-                                        <i class="fas fa-user"></i> 
-                                        {{ track.uploader }}
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="track-actions">
-                            <div class="track-stats">
-                                <span class="duration">{{ track.duration or '0:00' }}</span>
-                                <div class="like-count">
-                                    <i class="fas fa-heart"></i>
-                                    <span class="count">0</span>
-                                </div>
-                            </div>
-                            <div class="track-controls">
-                                <button class="play-btn" onclick="togglePlayPause('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <button class="like-btn" onclick="toggleLike('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                                <button class="delete-btn" onclick="deleteTrack('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                            <div class="track-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 0%"></div>
-                                </div>
-                                <span class="progress-text">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+                <div class="playlists-grid" id="playlistsGrid">
+                    <!-- Плейлисты будут загружены через JavaScript -->
                 </div>
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-music"></i>
-                    <h3>У вас пока нет загруженных треков</h3>
-                    <p>Загрузите свой первый трек выше</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления трека в плейлист -->
+    <div id="addToPlaylistModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Добавить в плейлист</h3>
+                <button class="close-btn" onclick="closeModal('addToPlaylistModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="playlistsList">
+                    <!-- Список плейлистов будет загружен -->
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -252,7 +191,7 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/playlists.js') }}"></script>
     <script>
         // Мобильное меню
         document.addEventListener('DOMContentLoaded', function() {

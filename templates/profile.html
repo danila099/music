@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
+<body data-user-id="{{ user.id }}">
     <!-- Мобильное меню -->
     <div class="mobile-menu-toggle">
         <i class="fas fa-bars"></i>
@@ -94,10 +94,10 @@
                         </div>
                     </div>
                     <div class="profile-actions">
-                        <button class="edit-profile-btn" onclick="editProfile()">
+                        <button class="edit-profile-btn" onclick="openEditProfileModal()">
                             <i class="fas fa-edit"></i> Редактировать
                         </button>
-                        <button class="settings-btn" onclick="openSettings()">
+                        <button class="settings-btn" onclick="switchTab('settings')">
                             <i class="fas fa-cog"></i> Настройки
                         </button>
                     </div>
@@ -209,7 +209,7 @@
                 <div id="playlists" class="tab-content">
                     <div class="playlists-header">
                         <h3>Мои плейлисты</h3>
-                        <button class="create-playlist-btn" onclick="createPlaylist()">
+                        <button class="create-playlist-btn" onclick="openCreatePlaylistModal()">
                             <i class="fas fa-plus"></i> Создать плейлист
                         </button>
                     </div>
@@ -260,21 +260,14 @@
                         <!-- Настройки профиля -->
                         <div class="settings-section">
                             <h3>Настройки профиля</h3>
-                            <form id="profile-form" class="settings-form">
-                                <div class="form-group">
-                                    <label for="username">Имя пользователя</label>
-                                    <input type="text" id="username" name="username" value="{{ user.username }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="email">Email</label>
-                                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="bio">О себе</label>
-                                    <textarea id="bio" name="bio" rows="3">{{ user.bio or '' }}</textarea>
-                                </div>
-                                <button type="submit" class="save-btn">Сохранить изменения</button>
-                            </form>
+                            <div class="profile-actions">
+                                <button class="edit-profile-btn" onclick="openEditProfileModal()">
+                                    <i class="fas fa-edit"></i> Редактировать профиль
+                                </button>
+                                <button class="change-password-btn" onclick="openChangePasswordModal()">
+                                    <i class="fas fa-key"></i> Изменить пароль
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Настройки приватности -->

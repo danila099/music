@@ -21,6 +21,7 @@
             <ul class="sidebar-nav">
                 <li><a href="{{ url_for('index') }}" class="active"><i class="fas fa-home"></i> Главная</a></li>
                 <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
+                <li><a href="{{ url_for('playlists_page') }}"><i class="fas fa-list"></i> Плейлисты</a></li>
                 <li><a href="{{ url_for('radio') }}"><i class="fas fa-radio"></i> Радио</a></li>
                 <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
                 <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
@@ -37,6 +38,7 @@
         <ul class="sidebar-nav">
             <li><a href="{{ url_for('index') }}" class="active"><i class="fas fa-home"></i> Главная</a></li>
             <li><a href="{{ url_for('upload') }}"><i class="fas fa-upload"></i> Загрузить</a></li>
+            <li><a href="{{ url_for('playlists_page') }}"><i class="fas fa-list"></i> Плейлисты</a></li>
             <li><a href="{{ url_for('radio') }}"><i class="fas fa-radio"></i> Радио</a></li>
             <li><a href="{{ url_for('history') }}"><i class="fas fa-history"></i> История</a></li>
             <li><a href="{{ url_for('search_advanced') }}"><i class="fas fa-search"></i> Поиск</a></li>
@@ -120,8 +122,10 @@
             {% if user_tracks %}
             <section class="section">
                 <div class="section-header">
-                    <h2>Мои треки</h2>
+                    <h2>Загруженные треки</h2>
+                    {% if user %}
                     <a href="/upload" class="see-all">Управление</a>
+                    {% endif %}
                 </div>
                 <div class="user-tracks-preview">
                     {% for track in user_tracks[:6] %}
@@ -143,6 +147,9 @@
                                     {% if track.upload_date %}
                                     <i class="fas fa-calendar"></i> {{ track.upload_date }}
                                     {% endif %}
+                                    {% if track.uploader %}
+                                    <i class="fas fa-user"></i> {{ track.uploader }}
+                                    {% endif %}
                                 </span>
                             </div>
                         </div>
@@ -153,9 +160,14 @@
                             <button class="like-btn" onclick="toggleLike('user_{{ track.id }}', 'user')" data-track-id="user_{{ track.id }}">
                                 <i class="fas fa-heart"></i>
                             </button>
+                            <button class="add-to-playlist-btn" onclick="showAddToPlaylistModal('{{ track.id }}', 'user')" title="Добавить в плейлист">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            {% if user and user.id == track.user_id %}
                             <button class="delete-btn" onclick="deleteTrack('user_{{ track.id }}')" data-track-id="user_{{ track.id }}">
                                 <i class="fas fa-trash"></i>
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -169,15 +181,21 @@
             {% else %}
             <section class="section">
                 <div class="section-header">
-                    <h2>Мои треки</h2>
+                    <h2>Загруженные треки</h2>
                 </div>
                 <div class="empty-state">
                     <i class="fas fa-music"></i>
-                    <h3>У вас пока нет загруженных треков</h3>
-                    <p>Загрузите свой первый трек и начните слушать любимую музыку</p>
+                    <h3>Пока нет загруженных треков</h3>
+                    <p>Будьте первым, кто загрузит трек и поделится музыкой с другими</p>
+                    {% if user %}
                     <a href="/upload" class="upload-btn">
                         <i class="fas fa-upload"></i> Загрузить музыку
                     </a>
+                    {% else %}
+                    <a href="/login" class="upload-btn">
+                        <i class="fas fa-sign-in-alt"></i> Войти для загрузки
+                    </a>
+                    {% endif %}
                 </div>
             </section>
             {% endif %}
